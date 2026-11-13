@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="112" fill="#0f1419"/>
+  <rect x="24" y="24" width="464" height="464" rx="92" fill="#19222a" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+  <!-- Architectural Truss / Compass Emblem -->
+  <path d="M256 96L396 368H332L256 212L180 368H116L256 96Z" fill="#ff9f1c"/>
+  <path d="M168 312H344V352H168V312Z" fill="#2ec4b6"/>
+  <circle cx="256" cy="144" r="20" fill="#0f1419" stroke="#2ec4b6" stroke-width="8"/>
+  <path d="M128 408H384" stroke="rgba(255,255,255,0.22)" stroke-width="8" stroke-linecap="round"/>
+</svg>

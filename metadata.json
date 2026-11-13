@@ -1,0 +1,6 @@
+{
+  "name": "DZ Civil Pro Ultimate",
+  "description": "أداة هندسية ميدانية متكاملة لمهندسي البناء والمقاولين والطلبة في الجزائر: خريطة المحاجر، تحديد الموقع GPS، وحاسبات الخرسانة والحديد والبناء دون إنترنت.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
