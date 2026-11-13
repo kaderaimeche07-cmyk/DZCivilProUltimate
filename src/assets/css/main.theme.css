@@ -1,7 +1,10 @@
 :root {
-  --bg-obsidian: #0b110d;
-  --surface-primary: #121b15;
-  --surface-elevated: #1a261e;
+  --bg-console-deep: #080c0a;
+  --bg-console-top: #111814;
+  --surface-matte: #0f1612;
+  --surface-raised: #141d18;
+  --surface-well: #070b09;
+  --border-input: #24352b;
   --accent-kiwi: #84cc16;
   --accent-kiwi-bright: #a3e635;
   --accent-kiwi-soft: #d9f99d;
@@ -9,18 +12,61 @@
   --accent-amber: #f59e0b;
   --accent-amber-hover: #fbbf24;
   --text-primary: #f4f7f2;
-  --text-secondary: #a3b8a8;
-  --text-muted: #6b7f70;
-  --border-glass: rgba(163, 230, 53, 0.11);
-  --border-glass-strong: rgba(163, 230, 53, 0.22);
+  --text-secondary: #b7c9bc;
+  --text-muted: #728879;
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-kiwi: rgba(132, 204, 22, 0.24);
+  --border-amber: rgba(245, 158, 11, 0.34);
+  --radius-console: 14px;
+  --radius-control: 12px;
+}
+
+/* Daytime Site High-Contrast Theme (للقراءة تحت أشعة الشمس في الورشات) */
+html.theme-day,
+body.theme-day,
+.theme-day {
+  --bg-console-deep: #f8fafc;
+  --bg-console-top: #ffffff;
+  --surface-matte: #ffffff;
+  --surface-raised: #f1f5f9;
+  --surface-well: #f8fafc;
+  --border-input: #cbd5e1;
+  --accent-kiwi: #4d7c0f;
+  --accent-kiwi-bright: #65a30d;
+  --accent-kiwi-soft: #ecfccb;
+  --accent-kiwi-hover: #3f6212;
+  --accent-amber: #d97706;
+  --accent-amber-hover: #b45309;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-hairline: #e2e8f0;
+  --border-kiwi: rgba(77, 124, 15, 0.35);
+  --border-amber: rgba(217, 119, 6, 0.35);
 }
 
 html,
 body {
-  background-color: var(--bg-obsidian);
+  min-height: 100dvh;
+  background-color: var(--bg-console-deep);
+  background-image: linear-gradient(180deg, var(--bg-console-top) 0%, var(--bg-console-deep) 42%, #070a08 100%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
-  overflow-x: clip;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+body.theme-day {
+  background-image: none !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+#root {
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 .font-mono-tabular {
@@ -32,50 +78,150 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Subtle CAD blueprint grid background for engineering SVG containers */
-.bg-engineering-grid {
-  background-color: #090e0b;
+/* Topographic CAD blueprint grid for interactive engineering diagrams */
+.bg-engineering-grid,
+.blueprint-cad-frame {
+  background-color: #070b09;
   background-image:
-    linear-gradient(to right, rgba(132, 204, 22, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(132, 204, 22, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(to right, rgba(132, 204, 22, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(132, 204, 22, 0.055) 1px, transparent 1px),
+    linear-gradient(to right, rgba(132, 204, 22, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(132, 204, 22, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+  border-radius: var(--radius-console);
 }
 
-.glass-surface {
-  background: rgba(18, 27, 21, 0.9);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+/* Topographic drafting ruler strip along panel headers */
+.topographic-scale {
+  height: 4px;
+  width: 100%;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgba(132, 204, 22, 0.4) 0px,
+      rgba(132, 204, 22, 0.4) 1px,
+      transparent 1px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(183, 201, 188, 0.18) 0px,
+      rgba(183, 201, 188, 0.18) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  opacity: 0.75;
+}
+
+/* Matte Architectural Console Panel (replaces glossy generic SaaS boxes) */
+.glass-surface,
+.console-panel {
+  background: linear-gradient(180deg, rgba(20, 29, 24, 0.96) 0%, rgba(12, 18, 15, 0.98) 100%);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-console);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.theme-day .console-panel,
+.theme-day .glass-surface {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+.glass-elevated,
+.console-well {
+  background: var(--surface-well);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
-.glass-elevated {
-  background: rgba(26, 38, 30, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-glass);
+.theme-day .console-well,
+.theme-day .glass-elevated {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05) !important;
 }
 
+/* Explicit input field border styling */
+.dz-input-control {
+  border: 1px solid var(--border-input);
+  background-color: var(--surface-well);
+}
+
+.theme-day .dz-input-control {
+  border-color: #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Unified Telemetry Readout Bar with hairline precision cells */
+.telemetry-strip {
+  background: var(--surface-well);
+  border: 1px solid rgba(132, 204, 22, 0.22);
+  border-radius: var(--radius-console);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(163, 230, 53, 0.08);
+}
+
+.theme-day .telemetry-strip {
+  background: #f8fafc !important;
+  border-color: rgba(77, 124, 15, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+.telemetry-cell {
+  background: rgba(11, 17, 13, 0.92);
+  transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-day .telemetry-cell {
+  background: #ffffff !important;
+}
+
+.telemetry-cell:hover {
+  background: rgba(17, 26, 20, 0.98);
+}
+
+.theme-day .telemetry-cell:hover {
+  background: #f1f5f9 !important;
+}
+
+/* Tactile field buttons (44px+ ergonomics & 200ms crisp feedback) */
 .btn-kiwi {
   background-color: var(--accent-kiwi);
-  color: #081006;
-  font-weight: 700;
-  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: #060a05;
+  font-weight: 800;
+  border-radius: var(--radius-control);
+  transition:
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-day .btn-kiwi {
+  color: #ffffff !important;
 }
 
 .btn-kiwi:hover:not(:disabled) {
   background-color: var(--accent-kiwi-hover);
+  box-shadow: 0 0 0 1px rgba(163, 230, 53, 0.45);
 }
 
 .btn-kiwi:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .btn-amber {
   background-color: var(--accent-amber);
-  color: #0b110d;
-  font-weight: 700;
-  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+  color: #080c0a;
+  font-weight: 800;
+  border-radius: var(--radius-control);
+  transition:
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -87,41 +233,50 @@ body {
   transform: scale(0.98);
 }
 
-/* Custom Kiwi Dark Scrollbar */
+/* High-visibility focus ring for daylight & keyboard use */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent-kiwi);
+  outline-offset: 2px;
+}
+
+/* Custom Matte Charcoal Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b110d;
+  background: #080c0a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2e24;
+  background: #1d2b22;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #365314;
+  background: #4d7c0f;
 }
 
-/* Leaflet Kiwi Obsidian Theme Overrides */
+/* Leaflet Field Console Theme Overrides */
 .leaflet-container {
-  background: #080d0a !important;
+  background: #070b09 !important;
   font-family: 'Tajawal', system-ui, sans-serif !important;
 }
 
 .leaflet-tile-pane {
-  filter: invert(100%) hue-rotate(155deg) brightness(88%) contrast(94%) saturate(38%);
+  filter: invert(100%) hue-rotate(155deg) brightness(86%) contrast(96%) saturate(34%);
 }
 
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: #121b15 !important;
+  background: #0f1612 !important;
   color: #f4f7f2 !important;
-  border: 1px solid rgba(132, 204, 22, 0.2) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(132, 204, 22, 0.28) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65) !important;
   border-radius: 14px !important;
 }
 
@@ -133,7 +288,7 @@ body {
 }
 
 .leaflet-popup-close-button {
-  color: #a3b8a8 !important;
+  color: #b7c9bc !important;
   left: 10px !important;
   right: auto !important;
   top: 10px !important;
@@ -144,27 +299,27 @@ body {
 }
 
 .leaflet-control-zoom a {
-  background-color: #121b15 !important;
+  background-color: #0f1612 !important;
   color: #f4f7f2 !important;
-  border-color: rgba(163, 230, 53, 0.16) !important;
-  width: 36px !important;
-  height: 36px !important;
-  line-height: 36px !important;
+  border-color: rgba(132, 204, 22, 0.2) !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #1a261e !important;
+  background-color: #16211b !important;
   color: #a3e635 !important;
 }
 
 .leaflet-control-attribution {
-  background: rgba(11, 17, 13, 0.82) !important;
-  color: #6b7f70 !important;
+  background: rgba(8, 12, 10, 0.86) !important;
+  color: #728879 !important;
   font-size: 10px !important;
 }
 
 .leaflet-control-attribution a {
-  color: #a3b8a8 !important;
+  color: #b7c9bc !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -176,3 +331,41 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Field Print Styles for Métré & BoQ reports */
+@media print {
+  header,
+  nav,
+  .offline-indicator,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body,
+  html,
+  #root,
+  main {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .console-panel {
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+  }
+
+  article {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin-bottom: 12px;
+  }
+}
+

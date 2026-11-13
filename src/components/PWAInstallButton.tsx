@@ -16,7 +16,7 @@ export const PWAInstallButton: React.FC = () => {
         type="button"
         onClick={install}
         aria-label="تثبيت التطبيق للعمل دون إنترنت"
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#84cc16]/40 bg-[#84cc16]/12 px-3.5 py-2 text-xs font-semibold text-[#a3e635] transition-colors hover:bg-[#84cc16]/20 whitespace-nowrap shrink-0 cursor-pointer"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-[12px] border border-[#84cc16]/40 bg-[#84cc16]/12 px-3.5 py-2 text-xs font-semibold text-[#84cc16] transition-all duration-200 hover:bg-[#84cc16]/20 whitespace-nowrap shrink-0 cursor-pointer"
       >
         <Download className="h-4 w-4 shrink-0" />
         <span>تثبيت التطبيق</span>
@@ -31,9 +31,9 @@ export const PWAInstallButton: React.FC = () => {
           type="button"
           onClick={() => setShowIOSGuide(true)}
           aria-label="تثبيت التطبيق على آيفون"
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/10 bg-[#1a261e] px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:border-[#84cc16]/40 whitespace-nowrap shrink-0 cursor-pointer"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-[12px] border border-white/10 bg-[#0f1612] px-3 py-2 text-xs font-medium text-[#f4f7f2] transition-all duration-200 hover:border-[#84cc16]/40 whitespace-nowrap shrink-0 cursor-pointer"
         >
-          <Download className="h-4 w-4 text-[#a3e635] shrink-0" />
+          <Download className="h-4 w-4 text-[#84cc16] shrink-0" />
           <span>تثبيت</span>
         </button>
 
@@ -42,34 +42,37 @@ export const PWAInstallButton: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="ios-install-title"
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
           >
-            <div className="glass-surface w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between gap-4">
-                <h3 id="ios-install-title" className="text-base font-bold text-white">
-                  تثبيت DZ Civil Pro على iOS
-                </h3>
+            <div className="console-panel w-full max-w-sm overflow-hidden shadow-2xl">
+              <div className="topographic-scale" aria-hidden="true" />
+              <div className="p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 id="ios-install-title" className="text-base font-bold text-[#f4f7f2]">
+                    تثبيت DZ Civil Pro على iOS
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowIOSGuide(false)}
+                    aria-label="إغلاق نافذة التثبيت"
+                    className="flex h-11 w-11 items-center justify-center rounded-[12px] text-[#b7c9bc] hover:bg-white/5 hover:text-[#f4f7f2] transition-colors duration-200 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <ol className="mt-4 space-y-2.5 text-sm leading-relaxed text-[#b7c9bc]">
+                  <li>1. اضغط على أيقونة المشاركة (Share) في شريط Safari.</li>
+                  <li>2. مرّر للأسفل واختر إضافة إلى الشاشة الرئيسية (Add to Home Screen).</li>
+                  <li>3. يعمل التطبيق بكامل حاسباته دون إنترنت في الورشات المعزولة.</li>
+                </ol>
                 <button
                   type="button"
                   onClick={() => setShowIOSGuide(false)}
-                  aria-label="إغلاق نافذة التثبيت"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#a3b8a8] hover:bg-white/5 hover:text-white cursor-pointer"
+                  className="btn-kiwi mt-5 w-full min-h-[44px] py-2.5 text-sm cursor-pointer"
                 >
-                  <X className="h-4 w-4" />
+                  فهمت
                 </button>
               </div>
-              <ol className="mt-4 space-y-2.5 text-sm leading-relaxed text-[#c5d6c9]">
-                <li>1. اضغط على أيقونة المشاركة (Share) في شريط Safari.</li>
-                <li>2. مرّر للأسفل واختر إضافة إلى الشاشة الرئيسية (Add to Home Screen).</li>
-                <li>3. يعمل التطبيق بكامل حاسباته دون إنترنت في الورشات المعزولة.</li>
-              </ol>
-              <button
-                type="button"
-                onClick={() => setShowIOSGuide(false)}
-                className="btn-kiwi mt-5 w-full min-h-[44px] rounded-xl py-2.5 text-sm cursor-pointer"
-              >
-                فهمت
-              </button>
             </div>
           </div>
         )}

@@ -100,142 +100,152 @@ export const OverviewHub: React.FC<OverviewHubProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* 2-Column Stretched Hero Split */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-7 glass-surface rounded-2xl p-6 sm:p-8 flex flex-col justify-between gap-6">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#a3e635] font-semibold">
-              <span>المنصة الجزائرية للهندسة المدنية</span>
-              <span aria-hidden="true" className="text-[#6b7f70]">·</span>
-              <span className="text-[#a3b8a8]">تعمل دون اتصال بالإنترنت</span>
+      {/* 2-Column Stretched Field Console Hero */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-7 console-panel overflow-hidden flex flex-col justify-between">
+          <div className="topographic-scale" aria-hidden="true" />
+          <div className="p-6 sm:p-8 flex flex-col justify-between gap-6 flex-1">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#84cc16]">
+                <span>المنصة الجزائرية للهندسة المدنية</span>
+                <span aria-hidden="true" className="text-[#728879]">·</span>
+                <span className="text-[#b7c9bc]">تعمل دون اتصال بالإنترنت</span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight text-[#f4f7f2] [text-wrap:balance]">
+                حاسبات ميدانية دقيقة بأي وحدة قياس، مدعومة برسومات هندسية وخريطة 58 ولاية
+              </h1>
+
+              <p className="text-sm sm:text-base leading-relaxed text-[#b7c9bc] max-w-2xl">
+                صُممت لتسهيل عمل المهندس المدني والمقاول في الورشة: أدخل القياسات بالمتر أو السنتيمتر أو المليمتر مباشرة، شاهد المخططات الهندسية الحية، قدّر التكاليف بالدينار، وحدد أقرب محجرة لمشروعك.
+              </p>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white [text-wrap:balance]">
-              حاسبات ميدانية دقيقة بأي وحدة قياس، مدعومة برسومات هندسية وخريطة 58 ولاية
-            </h1>
-
-            <p className="text-sm sm:text-base leading-relaxed text-[#a3b8a8] max-w-2xl">
-              صُممت لتسهيل عمل المهندس المدني والمقاول في الورشة: أدخل القياسات بالمتر أو السنتيمتر أو المليمتر مباشرة، شاهد المخططات الهندسية الحية، قدّر التكاليف بالدينار، وحدد أقرب محجرة لمشروعك.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => onOpenStructuralTool('concrete')}
-              className="btn-kiwi inline-flex min-h-[46px] items-center gap-2 rounded-xl px-5 py-2.5 text-sm cursor-pointer"
-            >
-              <Box className="h-4 w-4" />
-              <span>ابدأ الحساب الآن</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigateTab('quarries')}
-              className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-[#84cc16]/30 bg-[#1a261e] px-5 py-2.5 text-sm font-bold text-[#d9f99d] hover:border-[#84cc16]/60 transition-colors cursor-pointer"
-            >
-              <MapPin className="h-4 w-4 text-[#a3e635]" />
-              <span>خريطة المحاجر والـ GPS</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => onOpenStructuralTool('concrete')}
+                className="btn-kiwi inline-flex min-h-[46px] items-center gap-2 px-5 py-2.5 text-sm cursor-pointer"
+              >
+                <Box className="h-4 w-4 shrink-0" />
+                <span>ابدأ الحساب الآن</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('quarries')}
+                className="inline-flex min-h-[46px] items-center gap-2 rounded-[12px] border border-white/[0.12] bg-[#141d18] px-5 py-2.5 text-sm font-bold text-[#f4f7f2] hover:border-[#84cc16]/50 hover:text-[#a3e635] transition-colors duration-200 cursor-pointer"
+              >
+                <MapPin className="h-4 w-4 text-[#84cc16] shrink-0" />
+                <span>خريطة المحاجر والـ GPS</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Hero Visual Panel */}
-        <div className="lg:col-span-5 relative min-h-[240px] lg:min-h-[320px] overflow-hidden rounded-2xl border border-[#84cc16]/25 bg-[#090e0b]">
+        {/* Hero Blueprint Media Frame */}
+        <div className="lg:col-span-5 relative min-h-[240px] lg:min-h-[320px] overflow-hidden rounded-[14px] border border-[#84cc16]/25 bg-[#070b09]">
           <img
             src={heroImage}
             alt="نموذج هندسي ثلاثي الأبعاد لجسر خرساني ومسار طريق بخطوط تخطيط خضراء"
             referrerPolicy="no-referrer"
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b110d] via-[#0b110d]/35 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080c0a] via-[#080c0a]/35 to-transparent" />
           <div className="absolute bottom-4 right-4 left-4 flex items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[#a3e635]">رسومات هندسية تفاعلية</div>
-              <div className="text-sm font-bold text-white">معاينة فورية للمقاطع والكميات</div>
+              <div className="text-xs font-semibold text-[#84cc16]">رسومات هندسية تفاعلية</div>
+              <div className="text-sm font-bold text-[#f4f7f2]">معاينة فورية للمقاطع والكميات</div>
             </div>
-            <span className="font-mono-tabular text-xs font-bold text-[#fbbf24] whitespace-nowrap shrink-0" dir="ltr">
+            <span className="font-mono-tabular text-xs font-bold text-[#f59e0b] whitespace-nowrap shrink-0" dir="ltr">
               CBA 93 · RPA · B40
             </span>
           </div>
         </div>
       </section>
 
-      {/* Full-Width 4-Column Quantitative Strip */}
-      <section aria-label="ملخص قدرات المنصة" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="glass-surface rounded-2xl p-4">
-          <div className="text-xs text-[#a3b8a8]">التغطية الجغرافية</div>
-          <div className="mt-1 font-mono-tabular text-2xl font-extrabold text-[#a3e635]">58</div>
-          <div className="text-xs text-[#c5d6c9]">ولاية جزائرية رسمية</div>
+      {/* Unified 4-Column Telemetry Capability Strip */}
+      <section aria-label="ملخص قدرات المنصة" className="telemetry-strip">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.08]">
+          <div className="telemetry-cell p-4 sm:p-5">
+            <div className="text-xs text-[#b7c9bc]">التغطية الجغرافية</div>
+            <div className="mt-1.5 font-mono-tabular text-2xl sm:text-3xl font-extrabold text-[#84cc16]">58</div>
+            <div className="mt-0.5 text-xs text-[#b7c9bc]">ولاية جزائرية رسمية</div>
+          </div>
+          <div className="telemetry-cell p-4 sm:p-5">
+            <div className="text-xs text-[#b7c9bc]">قاعدة بيانات المواد</div>
+            <div className="mt-1.5 font-mono-tabular text-2xl sm:text-3xl font-extrabold text-[#f59e0b]">
+              {ALGERIAN_QUARRIES.length}
+            </div>
+            <div className="mt-0.5 text-xs text-[#b7c9bc]">محجرة ومصنع إسمنت ورمل</div>
+          </div>
+          <div className="telemetry-cell p-4 sm:p-5">
+            <div className="text-xs text-[#b7c9bc]">المرونة القياسية</div>
+            <div className="mt-1.5 font-mono-tabular text-2xl sm:text-3xl font-extrabold text-[#f4f7f2]">7+</div>
+            <div className="mt-0.5 text-xs text-[#b7c9bc]">وحدات (م · سم · ملم · قدم · قنطار)</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('boq')}
+            className="telemetry-cell p-4 sm:p-5 text-right hover:bg-[#141d18] transition-colors duration-200 cursor-pointer flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between text-xs text-[#b7c9bc]">
+              <span>كشف الكميات المحفوظ</span>
+              <ClipboardList className="h-4 w-4 text-[#84cc16]" />
+            </div>
+            <div className="mt-1.5 font-mono-tabular text-2xl sm:text-3xl font-extrabold text-[#84cc16]">
+              {savedCount} <span className="text-xs font-normal text-[#b7c9bc]">بند</span>
+            </div>
+            <div className="mt-0.5 font-mono-tabular text-xs font-semibold text-[#f59e0b]">
+              {totalEstimatedDzd > 0 ? formatDzd(totalEstimatedDzd) : 'اضغط لفتح الكشف'}
+            </div>
+          </button>
         </div>
-        <div className="glass-surface rounded-2xl p-4">
-          <div className="text-xs text-[#a3b8a8]">قاعدة بيانات المواد</div>
-          <div className="mt-1 font-mono-tabular text-2xl font-extrabold text-[#f59e0b]">
-            {ALGERIAN_QUARRIES.length}
-          </div>
-          <div className="text-xs text-[#c5d6c9]">محجرة ومصنع إسمنت ورمل</div>
-        </div>
-        <div className="glass-surface rounded-2xl p-4">
-          <div className="text-xs text-[#a3b8a8]">المرونة القياسية</div>
-          <div className="mt-1 font-mono-tabular text-2xl font-extrabold text-white">7+</div>
-          <div className="text-xs text-[#c5d6c9]">وحدات (م · سم · ملم · قدم · قنطار)</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => onNavigateTab('boq')}
-          className="glass-surface rounded-2xl p-4 text-right hover:border-[#84cc16]/45 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center justify-between text-xs text-[#a3b8a8]">
-            <span>كشف الكميات المحفوظ</span>
-            <ClipboardList className="h-4 w-4 text-[#a3e635]" />
-          </div>
-          <div className="mt-1 font-mono-tabular text-2xl font-extrabold text-[#a3e635]">
-            {savedCount} <span className="text-xs font-normal text-[#a3b8a8]">بند</span>
-          </div>
-          <div className="font-mono-tabular text-xs text-[#fbbf24]">
-            {totalEstimatedDzd > 0 ? formatDzd(totalEstimatedDzd) : 'اضغط لفتح الكشف'}
-          </div>
-        </button>
       </section>
 
-      {/* Structured 6-Tool Workspace Grid */}
+      {/* Structured 6-Tool Engineering Console Grid */}
       <section aria-labelledby="workspace-tools-heading" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-end justify-between gap-2 border-b border-white/[0.08] pb-3">
           <div>
-            <h2 id="workspace-tools-heading" className="text-xl font-bold text-white">
+            <h2 id="workspace-tools-heading" className="text-xl font-bold text-[#f4f7f2]">
               مساحة العمل الهندسية
             </h2>
-            <p className="text-xs text-[#a3b8a8]">
+            <p className="text-xs text-[#b7c9bc]">
               اختر الأداة المطلوبة للانتقال مباشرة إلى الحاسبة والرسومات التوضيحية الخاصة بها
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workspaceTools.map((tool) => (
+          {workspaceTools.map((tool, index) => (
             <button
               key={tool.id}
               type="button"
               onClick={tool.onClick}
-              className="group glass-surface rounded-2xl p-5 text-right transition-all hover:border-[#84cc16]/50 hover:bg-[#17231b] cursor-pointer flex flex-col justify-between gap-4"
+              className="group console-panel p-5 text-right transition-all duration-200 hover:border-[#84cc16]/55 cursor-pointer flex flex-col justify-between gap-4 min-h-[144px]"
             >
               <div className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-                      tool.accent === 'kiwi'
-                        ? 'bg-[#84cc16]/15 text-[#a3e635]'
-                        : 'bg-[#f59e0b]/15 text-[#fbbf24]'
-                    }`}
-                  >
-                    {tool.icon}
-                  </span>
-                  <ArrowUpLeft className="h-4 w-4 text-[#6b7f70] group-hover:text-[#a3e635] transition-colors" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-[12px] border ${
+                        tool.accent === 'kiwi'
+                          ? 'border-[#84cc16]/25 bg-[#84cc16]/12 text-[#84cc16]'
+                          : 'border-[#f59e0b]/25 bg-[#f59e0b]/12 text-[#f59e0b]'
+                      }`}
+                    >
+                      {tool.icon}
+                    </span>
+                    <span className="font-mono-tabular text-xs font-bold text-[#728879]">
+                      {String(index + 1).padStart(2, '0')}.
+                    </span>
+                  </div>
+                  <ArrowUpLeft className="h-4 w-4 text-[#728879] group-hover:text-[#84cc16] transition-colors duration-200" />
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-semibold text-[#a3e635]">{tool.subtitle}</div>
-                  <h3 className="mt-0.5 text-base font-bold text-white">{tool.title}</h3>
-                  <p className="mt-1.5 text-xs leading-relaxed text-[#a3b8a8]">{tool.detail}</p>
+                  <div className="text-[11px] font-semibold text-[#84cc16]">{tool.subtitle}</div>
+                  <h3 className="mt-0.5 text-base font-bold text-[#f4f7f2]">{tool.title}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-[#b7c9bc]">{tool.detail}</p>
                 </div>
               </div>
             </button>
@@ -243,31 +253,32 @@ export const OverviewHub: React.FC<OverviewHubProps> = ({
         </div>
       </section>
 
-      {/* Algerian Civil Engineering Quick Standards Reference */}
-      <section aria-labelledby="dz-standards-heading" className="glass-surface rounded-2xl p-5 sm:p-6 space-y-4">
-        <div className="flex items-center gap-3 border-b border-white/[0.08] pb-3.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#84cc16]/15 text-[#a3e635]">
+      {/* Algerian Civil Engineering Technical Specification Plate */}
+      <section aria-labelledby="dz-standards-heading" className="console-panel overflow-hidden">
+        <div className="topographic-scale" aria-hidden="true" />
+        <div className="flex items-center gap-3 border-b border-white/[0.08] px-5 py-4 sm:px-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#84cc16]/25 bg-[#84cc16]/12 text-[#84cc16]">
             <BookOpen className="h-4.5 w-4.5" />
           </span>
           <div>
-            <h2 id="dz-standards-heading" className="text-base sm:text-lg font-bold text-white">
+            <h2 id="dz-standards-heading" className="text-base sm:text-lg font-bold text-[#f4f7f2]">
               المرجع السريع للمعايير الهندسية الجزائرية (RPA / CBA 93 / B40)
             </h2>
-            <p className="text-xs text-[#a3b8a8]">
+            <p className="text-xs text-[#b7c9bc]">
               قيم مرجعية سريعة للمهندس في الموقع دون الحاجة للبحث في الكتيبات
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.08]">
           {ALGERIAN_ENGINEERING_STANDARDS.map((std) => (
-            <div key={std.id} className="rounded-xl border border-white/[0.08] bg-[#0b110d]/85 p-4 space-y-1.5">
-              <div className="text-[11px] font-mono-tabular font-semibold text-[#fbbf24]" dir="ltr">
+            <div key={std.id} className="telemetry-cell p-5 space-y-1.5">
+              <div className="text-[11px] font-mono-tabular font-bold text-[#f59e0b]" dir="ltr">
                 {std.code}
               </div>
-              <div className="text-xs font-bold text-white">{std.title}</div>
-              <div className="font-mono-tabular text-base font-extrabold text-[#a3e635]">{std.value}</div>
-              <p className="text-[11px] leading-relaxed text-[#a3b8a8]">{std.note}</p>
+              <div className="text-xs font-bold text-[#f4f7f2]">{std.title}</div>
+              <div className="font-mono-tabular text-base font-extrabold text-[#84cc16]">{std.value}</div>
+              <p className="text-[11px] leading-relaxed text-[#b7c9bc]">{std.note}</p>
             </div>
           ))}
         </div>

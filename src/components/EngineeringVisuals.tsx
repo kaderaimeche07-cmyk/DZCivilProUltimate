@@ -17,13 +17,15 @@ export const ConcreteCadDiagram: React.FC<ConcreteCadDiagramProps> = ({
   result,
 }) => {
   return (
-    <div className="bg-engineering-grid rounded-2xl border border-[#84cc16]/20 p-4 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="font-bold text-[#d9f99d]">المخطط الهندسي للعنصر ونسب الخلطة</span>
-        <span className="font-mono-tabular text-[#a3b8a8]" dir="ltr">
-          CPJ 42.5 · {dosage} kg/m³
-        </span>
-      </div>
+    <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
+      <div className="topographic-scale" aria-hidden="true" />
+      <div className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#d9f99d]">المخطط الهندسي للعنصر ونسب الخلطة</span>
+          <span className="font-mono-tabular text-[#b7c9bc]" dir="ltr">
+            CPJ 42.5 · {dosage} kg/m³
+          </span>
+        </div>
 
       <svg
         viewBox="0 0 360 190"
@@ -100,17 +102,18 @@ export const ConcreteCadDiagram: React.FC<ConcreteCadDiagramProps> = ({
         </text>
       </svg>
 
-      {/* Proportional Mix Composition Bar */}
-      <div className="space-y-1.5 pt-1">
-        <div className="flex items-center justify-between text-[11px] text-[#a3b8a8]">
-          <span>توزيع حجم المكونات التقريبي</span>
-          <span className="font-mono-tabular text-[#d9f99d]">رمل · حصى · إسمنت · ماء</span>
-        </div>
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#0b110d] border border-white/10">
-          <div className="bg-[#84cc16]" style={{ width: '48%' }} title="حصى مكسر" />
-          <div className="bg-[#f59e0b]" style={{ width: '27%' }} title="رمل 0/3" />
-          <div className="bg-[#d9f99d]" style={{ width: '15%' }} title="إسمنت CPJ" />
-          <div className="bg-[#38bdf8]" style={{ width: '10%' }} title="ماء الخلط" />
+        {/* Proportional Mix Composition Bar */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-[11px] text-[#b7c9bc]">
+            <span>توزيع حجم المكونات التقريبي</span>
+            <span className="font-mono-tabular text-[#d9f99d]">رمل · حصى · إسمنت · ماء</span>
+          </div>
+          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#070b09] border border-white/10">
+            <div className="bg-[#84cc16]" style={{ width: '48%' }} title="حصى مكسر" />
+            <div className="bg-[#f59e0b]" style={{ width: '27%' }} title="رمل 0/3" />
+            <div className="bg-[#d9f99d]" style={{ width: '15%' }} title="إسمنت CPJ" />
+            <div className="bg-[#38bdf8]" style={{ width: '10%' }} title="ماء الخلط" />
+          </div>
         </div>
       </div>
     </div>
@@ -141,13 +144,15 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
   const remainderPct = Math.min(100, Math.max(0, (remainderM / 12) * 100));
 
   return (
-    <div className="bg-engineering-grid rounded-2xl border border-[#84cc16]/20 p-4 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="font-bold text-[#d9f99d]">المقطع العرضي وقص القضبان (12م)</span>
-        <span className="font-mono-tabular text-[#fbbf24]" dir="ltr">
-          Ø {safeDiameter} mm · A = {safeSection} mm²
-        </span>
-      </div>
+    <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
+      <div className="topographic-scale" aria-hidden="true" />
+      <div className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#d9f99d]">المقطع العرضي وقص القضبان (12م)</span>
+          <span className="font-mono-tabular text-[#f59e0b]" dir="ltr">
+            Ø {safeDiameter} mm · A = {safeSection} mm²
+          </span>
+        </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
         {/* Cross-Section SVG */}
@@ -197,25 +202,26 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-mono-tabular text-slate-300">
+            <div className="flex items-center justify-between text-[11px] font-mono-tabular text-[#b7c9bc]">
               <span>قضبان كاملة (12 م)</span>
               <span className="text-[#84cc16]">{fullBars} × 12m</span>
             </div>
-            <div className="h-3 w-full rounded-md bg-[#121b15] border border-[#84cc16]/30 overflow-hidden flex">
-              <div className="h-full bg-[#84cc16]" style={{ width: fullBars > 0 ? '100%' : '0%' }} />
+            <div className="h-3 w-full rounded-md bg-[#0f1612] border border-[#84cc16]/30 overflow-hidden flex">
+              <div className="h-full bg-[#84cc16] transition-all duration-200" style={{ width: fullBars > 0 ? '100%' : '0%' }} />
             </div>
 
-            <div className="flex items-center justify-between text-[11px] font-mono-tabular text-slate-300 pt-1">
+            <div className="flex items-center justify-between text-[11px] font-mono-tabular text-[#b7c9bc] pt-1">
               <span>الجزء التكميلي من القضيب الأخير</span>
-              <span className="text-[#fbbf24]" dir="ltr">
+              <span className="text-[#f59e0b]" dir="ltr">
                 {remainderM > 0 ? `${remainderM} m / 12 m` : 'بدون فائض (0 m)'}
               </span>
             </div>
-            <div className="h-3 w-full rounded-md bg-[#121b15] border border-white/10 overflow-hidden flex">
-              <div className="h-full bg-[#f59e0b]" style={{ width: `${remainderPct}%` }} />
+            <div className="h-3 w-full rounded-md bg-[#0f1612] border border-white/10 overflow-hidden flex">
+              <div className="h-full bg-[#f59e0b] transition-all duration-200" style={{ width: `${remainderPct}%` }} />
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -245,11 +251,13 @@ export const MasonryCadDiagram: React.FC<MasonryCadDiagramProps> = ({
   const cutH = Math.round(wallH * Math.sqrt(openingRatio) * 0.85);
 
   return (
-    <div className="bg-engineering-grid rounded-2xl border border-[#84cc16]/20 p-4 space-y-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="font-bold text-[#d9f99d]">الواجهة الهندسية للجدار والفتحات</span>
-        <span className="text-[#a3b8a8]">{brickLabel}</span>
-      </div>
+    <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
+      <div className="topographic-scale" aria-hidden="true" />
+      <div className="p-4 space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#d9f99d]">الواجهة الهندسية للجدار والفتحات</span>
+          <span className="text-[#b7c9bc]">{brickLabel}</span>
+        </div>
 
       <svg
         viewBox="0 0 340 165"
@@ -316,6 +324,7 @@ export const MasonryCadDiagram: React.FC<MasonryCadDiagramProps> = ({
           H = {heightLabel}
         </text>
       </svg>
+      </div>
     </div>
   );
 };
@@ -335,13 +344,15 @@ export const RoadSlopeCadDiagram: React.FC<RoadSlopeCadDiagramProps> = ({ result
   const gaugePos = Math.min(96, Math.max(4, (result.absSlopePercent / 12) * 100));
 
   return (
-    <div className="bg-engineering-grid rounded-2xl border border-[#84cc16]/20 p-4 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="font-bold text-[#d9f99d]">مثلث الانحدار الهندسي ومقياس B40</span>
-        <span className="font-mono-tabular text-[#a3e635]" dir="ltr">
-          {result.slopePercent}% ({result.slopeRatioText})
-        </span>
-      </div>
+    <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
+      <div className="topographic-scale" aria-hidden="true" />
+      <div className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#d9f99d]">مثلث الانحدار الهندسي ومقياس B40</span>
+          <span className="font-mono-tabular text-[#84cc16]" dir="ltr">
+            {result.slopePercent}% ({result.slopeRatioText})
+          </span>
+        </div>
 
       <svg
         viewBox="0 0 360 142"
@@ -390,24 +401,25 @@ export const RoadSlopeCadDiagram: React.FC<RoadSlopeCadDiagramProps> = ({ result
 
       {/* B40 Compliance Spectrum Bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-[10px] font-mono-tabular text-[#a3b8a8]" dir="ltr">
+        <div className="flex justify-between text-[10px] font-mono-tabular text-[#b7c9bc]" dir="ltr">
           <span>0%</span>
           <span>0.5%</span>
           <span>5% (B40)</span>
           <span>7%</span>
           <span>10%+</span>
         </div>
-        <div dir="ltr" className="relative h-2.5 w-full rounded-full overflow-hidden flex bg-[#0b110d]">
+        <div dir="ltr" className="relative h-2.5 w-full rounded-full overflow-hidden flex bg-[#070b09]">
           <div className="bg-[#f59e0b]/70" style={{ width: '5%' }} />
           <div className="bg-[#84cc16]" style={{ width: '37%' }} />
           <div className="bg-[#65a30d]" style={{ width: '16%' }} />
           <div className="bg-[#f59e0b]" style={{ width: '25%' }} />
           <div className="bg-[#ef4444]" style={{ width: '17%' }} />
           <div
-            className="absolute top-0 bottom-0 w-1 bg-white shadow"
+            className="absolute top-0 bottom-0 w-1 bg-white shadow transition-all duration-200"
             style={{ left: `calc(${gaugePos}% - 2px)` }}
           />
         </div>
+      </div>
       </div>
     </div>
   );
@@ -426,13 +438,15 @@ export const RoadCrossSectionDiagram: React.FC<RoadCrossSectionDiagramProps> = (
 }) => {
   const isCut = sampleMode === 'cut';
   return (
-    <div className="bg-engineering-grid rounded-2xl border border-[#84cc16]/20 p-4 space-y-2">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-bold text-[#d9f99d]">المقطع العرضي النموذجي (Profil en Travers)</span>
-        <span className="font-mono-tabular text-[#a3b8a8]" dir="ltr">
-          L={roadWidthM}m · Talus {sideSlopeRatio}:1
-        </span>
-      </div>
+    <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
+      <div className="topographic-scale" aria-hidden="true" />
+      <div className="p-4 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-bold text-[#d9f99d]">المقطع العرضي النموذجي (Profil en Travers)</span>
+          <span className="font-mono-tabular text-[#b7c9bc]" dir="ltr">
+            L={roadWidthM}m · Talus {sideSlopeRatio}:1
+          </span>
+        </div>
 
       <svg
         viewBox="0 0 340 120"
@@ -476,10 +490,11 @@ export const RoadCrossSectionDiagram: React.FC<RoadCrossSectionDiagramProps> = (
         <text x="64" y="62" fill="#a3b8a8" fontSize="10" fontFamily="JetBrains Mono, monospace" textAnchor="middle" direction="ltr">
           {sideSlopeRatio}:1
         </text>
-        <text x="276" y="62" fill="#a3b8a8" fontSize="10" fontFamily="JetBrains Mono, monospace" textAnchor="middle" direction="ltr">
+        <text x="276" y="62" fill="#b7c9bc" fontSize="10" fontFamily="JetBrains Mono, monospace" textAnchor="middle" direction="ltr">
           {sideSlopeRatio}:1
         </text>
       </svg>
+      </div>
     </div>
   );
 };

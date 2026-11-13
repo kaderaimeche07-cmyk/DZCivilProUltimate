@@ -1,7 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { Layers, Map as LucideMap, WifiOff } from 'lucide-react';
 import type { GeoCoordinates, QuarryWithDistance } from '../utils/gps.locator';
 import { formatDistanceKm, formatDurationAr } from '../utils/gps.locator';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { AlgeriaOfflineSvgMap } from './AlgeriaOfflineSvgMap';
 
 interface QuarryMapViewProps {
   quarries: QuarryWithDistance[];
@@ -57,7 +60,7 @@ function createOriginPopupElement(origin: GeoCoordinates): HTMLElement {
   const coordsEl = document.createElement('div');
   coordsEl.className = 'font-mono text-slate-300';
   coordsEl.dir = 'ltr';
-  coordsEl.textContent = `${origin.lat.toFixed(4)}, ${origin.lng.toFixed(4)}`;
+  coordsEl.innerHTML = `<bdi dir="ltr">${origin.lat.toFixed(4)}, ${origin.lng.toFixed(4)}</bdi>`;
 
   wrapper.append(titleEl, coordsEl);
   return wrapper;
@@ -65,7 +68,8 @@ function createOriginPopupElement(origin: GeoCoordinates): HTMLElement {
 
 function createQuarryPopupElement(quarry: QuarryWithDistance): HTMLElement {
   const wrapper = document.createElement('div');
-  wrapper.className = 'min-w-[210px] space-y-1.5 text-xs';
+  wrapper.className = 'min-w-[220px] space-y-2 text-xs text-right';
+  wrapper.dir = 'rtl';
 
   const nameEl = document.createElement('div');
   nameEl.className = 'font-bold text-sm text-white';
@@ -73,7 +77,7 @@ function createQuarryPopupElement(quarry: QuarryWithDistance): HTMLElement {
 
   const locEl = document.createElement('div');
   locEl.className = 'text-slate-300';
-  locEl.textContent = `${quarry.wilayaCode} ${quarry.wilayaName} · ${quarry.municipality}`;
+  locEl.innerHTML = `<bdi dir="ltr">${quarry.wilayaCode}</bdi> ${quarry.wilayaName} · ${quarry.municipality}`;
 
   const catEl = document.createElement('div');
   catEl.className = 'text-[#fbbf24] font-semibold';
@@ -84,18 +88,32 @@ function createQuarryPopupElement(quarry: QuarryWithDistance): HTMLElement {
   matsEl.textContent = quarry.materials.slice(0, 4).join(' · ');
 
   const footerEl = document.createElement('div');
-  footerEl.className = 'pt-1.5 mt-1.5 border-t border-white/10 flex items-center justify-between gap-3';
+  footerEl.className = 'pt-2 mt-2 border-t border-white/10 flex items-center justify-between gap-3';
 
   const distEl = document.createElement('span');
   distEl.className = 'text-[#a3e635] font-bold font-mono';
-  distEl.textContent = formatDistanceKm(quarry.distanceKm);
+  distEl.innerHTML = `<bdi dir="ltr">${formatDistanceKm(quarry.distanceKm)}</bdi>`;
 
   const etaEl = document.createElement('span');
   etaEl.className = 'text-slate-400';
-  etaEl.textContent = `~ ${formatDurationAr(quarry.estimatedMinutes)} بالشاحنة`;
+  etaEl.textContent = `~ ${formatDurationAr(quarry.estimatedMinutes)}`;
 
   footerEl.append(distEl, etaEl);
-  wrapper.append(nameEl, locEl, catEl, matsEl, footerEl);
+
+  const mapsActionEl = document.createElement('div');
+  mapsActionEl.className = 'pt-1.5';
+  mapsActionEl.innerHTML = `
+    <a
+      href="https://www.google.com/maps/dir/?api=1&destination=${quarry.lat},${quarry.lng}"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="w-full text-center block rounded-[8px] bg-[#f59e0b] hover:bg-[#fbbf24] text-[#080c0a] font-bold py-1.5 px-3 text-[11px] no-underline transition-colors"
+    >
+      فتح المسار في Google Maps
+    </a>
+  `;
+
+  wrapper.append(nameEl, locEl, catEl, matsEl, footerEl, mapsActionEl);
   return wrapper;
 }
 
@@ -106,6 +124,9 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
   onSelectQuarry,
   focusCoords,
 }) => {
+  const isOnline = useOnlineStatus();
+  const [mapMode, setMapMode] = useState<'tiles' | 'svg'>(() => (isOnline ? 'tiles' : 'svg'));
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
@@ -114,7 +135,15 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
   const onSelectRef = useRef(onSelectQuarry);
   onSelectRef.current = onSelectQuarry;
 
+  // Sync mode automatically if user goes offline
   useEffect(() => {
+    if (!isOnline && mapMode !== 'svg') {
+      setMapMode('svg');
+    }
+  }, [isOnline, mapMode]);
+
+  useEffect(() => {
+    if (mapMode !== 'tiles') return;
     const el = containerRef.current;
     if (!el || mapRef.current) return;
 
@@ -152,9 +181,10 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
       routeLineRef.current = null;
       markerByIdRef.current.clear();
     };
-  }, []);
+  }, [mapMode]);
 
   useEffect(() => {
+    if (mapMode !== 'tiles') return;
     const map = mapRef.current;
     const layer = markersLayerRef.current;
     if (!map || !layer) return;
@@ -187,7 +217,12 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
         zIndexOffset: isSelected ? 400 : 100,
       });
 
-      marker.bindPopup(createQuarryPopupElement(q));
+      marker.bindPopup(createQuarryPopupElement(q), {
+        maxWidth: 250,
+        autoPan: true,
+        autoPanPaddingTopLeft: L.point(16, 24),
+        autoPanPaddingBottomRight: L.point(16, 52),
+      });
 
       marker.on('click', () => {
         onSelectRef.current(q.id);
@@ -211,44 +246,103 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
         }
       ).addTo(map);
     }
-  }, [quarries, origin, selectedQuarryId]);
+  }, [quarries, origin, selectedQuarryId, mapMode]);
 
   useEffect(() => {
+    if (mapMode !== 'tiles') return;
     const map = mapRef.current;
     if (!map || !focusCoords || !Number.isFinite(focusCoords.lat) || !Number.isFinite(focusCoords.lng)) return;
 
     map.flyTo([focusCoords.lat, focusCoords.lng], focusCoords.zoom ?? 9, {
-      duration: 0.6,
+      duration: 0.35,
     });
-  }, [focusCoords]);
+  }, [focusCoords, mapMode]);
 
   useEffect(() => {
-    if (!selectedQuarryId) return;
+    if (mapMode !== 'tiles') return;
+    const map = mapRef.current;
+    if (!map || !selectedQuarryId) return;
     const marker = markerByIdRef.current.get(selectedQuarryId);
-    if (marker) {
-      marker.openPopup();
-    }
-  }, [selectedQuarryId]);
+    if (!marker) return;
+
+    const timer = window.setTimeout(() => {
+      if (mapRef.current && markerByIdRef.current.get(selectedQuarryId)) {
+        marker.openPopup();
+      }
+    }, 380);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedQuarryId, mapMode]);
 
   return (
-    <div className="relative h-[340px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden rounded-2xl border border-[#84cc16]/20 bg-[#080d0a]">
-      <div
-        ref={containerRef}
-        data-testid="quarry-leaflet-map"
-        className="h-full w-full"
-        aria-label="خريطة المحاجر الجزائرية التفاعلية"
-      />
-      {/* Compact Legend Overlay */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[400] flex flex-wrap items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0b110d]/90 px-3 py-2 text-xs text-[#c5d6c9] backdrop-blur-md">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#84cc16]" aria-hidden="true" />
-          <span>محجرة / مصنع</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
-          <span>الموقع المحدد</span>
-        </span>
+    <div className="space-y-2">
+      {/* Mode Switcher: Online Leaflet Tiles vs Local Offline SVG */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-1 rounded-[12px] bg-[#070b09] p-1 border border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setMapMode('tiles')}
+            disabled={!isOnline}
+            className={`min-h-[44px] inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-1.5 text-xs font-bold transition-colors cursor-pointer ${
+              mapMode === 'tiles'
+                ? 'bg-[#84cc16] text-[#060a05]'
+                : 'text-[#b7c9bc] hover:text-[#f4f7f2] disabled:opacity-35'
+            }`}
+          >
+            <LucideMap className="h-3.5 w-3.5" />
+            <span>خريطة الأقمار والشوارع (Online)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapMode('svg')}
+            className={`min-h-[44px] inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-1.5 text-xs font-bold transition-colors cursor-pointer ${
+              mapMode === 'svg'
+                ? 'bg-[#84cc16] text-[#060a05]'
+                : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            <span>خريطة بدون إنترنت (SVG)</span>
+          </button>
+        </div>
+
+        {!isOnline && (
+          <span className="flex items-center gap-1 text-[11px] text-[#f59e0b] font-medium">
+            <WifiOff className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">تم تفعيل الخريطة المتجهية تلقائياً دون إنترنت</span>
+          </span>
+        )}
       </div>
+
+      {mapMode === 'svg' ? (
+        <AlgeriaOfflineSvgMap
+          quarries={quarries}
+          origin={origin}
+          selectedQuarryId={selectedQuarryId}
+          onSelectQuarry={onSelectQuarry}
+          focusCoords={focusCoords}
+        />
+      ) : (
+        <div className="relative h-[360px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden rounded-[14px] border border-[#84cc16]/25 bg-[#070b09]">
+          <div
+            ref={containerRef}
+            data-testid="quarry-leaflet-map"
+            className="h-full w-full"
+            aria-label="خريطة المحاجر الجزائرية التفاعلية"
+          />
+          {/* Compact Legend Overlay */}
+          <div className="pointer-events-none absolute bottom-3 right-3 z-[400] flex flex-wrap items-center gap-4 rounded-[12px] border border-white/[0.08] bg-[#0f1612]/95 px-3 py-2 text-xs text-[#b7c9bc] backdrop-blur-md">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#84cc16]" aria-hidden="true" />
+              <span>محجرة / مصنع</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
+              <span>الموقع المحدد</span>
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
