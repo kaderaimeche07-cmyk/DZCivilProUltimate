@@ -12,8 +12,8 @@ interface QuarryMapViewProps {
 }
 
 function createQuarryMarkerIcon(isSelected: boolean): L.DivIcon {
-  const fill = isSelected ? '#ff9f1c' : '#2ec4b6';
-  const stroke = isSelected ? '#ffffff' : '#0f1419';
+  const fill = isSelected ? '#f59e0b' : '#84cc16';
+  const stroke = isSelected ? '#ffffff' : '#0b110d';
   const size = isSelected ? 34 : 26;
 
   return L.divIcon({
@@ -31,7 +31,7 @@ function createQuarryMarkerIcon(isSelected: boolean): L.DivIcon {
 }
 
 function createOriginMarkerIcon(isGps: boolean): L.DivIcon {
-  const color = isGps ? '#2ec4b6' : '#ff9f1c';
+  const color = isGps ? '#a3e635' : '#f59e0b';
   return L.divIcon({
     className: 'dz-origin-pin',
     iconSize: [34, 34],
@@ -40,10 +40,63 @@ function createOriginMarkerIcon(isGps: boolean): L.DivIcon {
     html: `
       <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="17" cy="17" r="14" stroke="${color}" stroke-width="2" stroke-dasharray="4 3" />
-        <circle cx="17" cy="17" r="6" fill="${color}" stroke="#0f1419" stroke-width="2.5" />
+        <circle cx="17" cy="17" r="6" fill="${color}" stroke="#0b110d" stroke-width="2.5" />
       </svg>
     `,
   });
+}
+
+function createOriginPopupElement(origin: GeoCoordinates): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'space-y-1 text-xs';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'font-bold text-[#a3e635]';
+  titleEl.textContent = origin.label;
+
+  const coordsEl = document.createElement('div');
+  coordsEl.className = 'font-mono text-slate-300';
+  coordsEl.dir = 'ltr';
+  coordsEl.textContent = `${origin.lat.toFixed(4)}, ${origin.lng.toFixed(4)}`;
+
+  wrapper.append(titleEl, coordsEl);
+  return wrapper;
+}
+
+function createQuarryPopupElement(quarry: QuarryWithDistance): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'min-w-[210px] space-y-1.5 text-xs';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'font-bold text-sm text-white';
+  nameEl.textContent = quarry.name;
+
+  const locEl = document.createElement('div');
+  locEl.className = 'text-slate-300';
+  locEl.textContent = `${quarry.wilayaCode} ${quarry.wilayaName} · ${quarry.municipality}`;
+
+  const catEl = document.createElement('div');
+  catEl.className = 'text-[#fbbf24] font-semibold';
+  catEl.textContent = quarry.categoryLabel;
+
+  const matsEl = document.createElement('div');
+  matsEl.className = 'text-slate-400';
+  matsEl.textContent = quarry.materials.slice(0, 4).join(' · ');
+
+  const footerEl = document.createElement('div');
+  footerEl.className = 'pt-1.5 mt-1.5 border-t border-white/10 flex items-center justify-between gap-3';
+
+  const distEl = document.createElement('span');
+  distEl.className = 'text-[#a3e635] font-bold font-mono';
+  distEl.textContent = formatDistanceKm(quarry.distanceKm);
+
+  const etaEl = document.createElement('span');
+  etaEl.className = 'text-slate-400';
+  etaEl.textContent = `~ ${formatDurationAr(quarry.estimatedMinutes)} بالشاحنة`;
+
+  footerEl.append(distEl, etaEl);
+  wrapper.append(nameEl, locEl, catEl, matsEl, footerEl);
+  return wrapper;
 }
 
 export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
@@ -62,10 +115,14 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
   onSelectRef.current = onSelectQuarry;
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    const el = containerRef.current;
+    if (!el || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      center: [origin.lat, origin.lng],
+    const initLat = Number.isFinite(origin.lat) ? origin.lat : 36.7538;
+    const initLng = Number.isFinite(origin.lng) ? origin.lng : 3.0588;
+
+    const map = L.map(el, {
+      center: [initLat, initLng],
       zoom: 7,
       zoomControl: true,
       attributionControl: true,
@@ -79,7 +136,16 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            map.invalidateSize({ animate: false });
+          })
+        : null;
+    resizeObserver?.observe(el);
+
     return () => {
+      resizeObserver?.disconnect();
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;
@@ -88,7 +154,6 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
     };
   }, []);
 
-  // Re-render quarry markers & origin pin
   useEffect(() => {
     const map = mapRef.current;
     const layer = markersLayerRef.current;
@@ -102,22 +167,18 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
       routeLineRef.current = null;
     }
 
-    // Origin marker
-    const originMarker = L.marker([origin.lat, origin.lng], {
-      icon: createOriginMarkerIcon(origin.source === 'gps'),
-      zIndexOffset: 500,
-    });
-    originMarker.bindPopup(
-      `<div class="space-y-1 text-xs">
-        <div class="font-bold text-[#2ec4b6]">${origin.label}</div>
-        <div class="font-mono text-slate-300" dir="ltr">${origin.lat.toFixed(4)}, ${origin.lng.toFixed(4)}</div>
-      </div>`
-    );
-    originMarker.addTo(layer);
+    if (Number.isFinite(origin.lat) && Number.isFinite(origin.lng)) {
+      const originMarker = L.marker([origin.lat, origin.lng], {
+        icon: createOriginMarkerIcon(origin.source === 'gps'),
+        zIndexOffset: 500,
+      });
+      originMarker.bindPopup(createOriginPopupElement(origin));
+      originMarker.addTo(layer);
+    }
 
-    // Quarry markers
     let selectedQuarry: QuarryWithDistance | undefined;
     for (const q of quarries) {
+      if (!Number.isFinite(q.lat) || !Number.isFinite(q.lng)) continue;
       const isSelected = q.id === selectedQuarryId;
       if (isSelected) selectedQuarry = q;
 
@@ -126,19 +187,7 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
         zIndexOffset: isSelected ? 400 : 100,
       });
 
-      const materialsHtml = q.materials.slice(0, 4).join(' · ');
-      marker.bindPopup(
-        `<div class="min-w-[210px] space-y-1.5 text-xs">
-          <div class="font-bold text-sm text-white">${q.name}</div>
-          <div class="text-slate-300">${q.wilayaCode} ${q.wilayaName} · ${q.municipality}</div>
-          <div class="text-[#ff9f1c] font-semibold">${q.categoryLabel}</div>
-          <div class="text-slate-400">${materialsHtml}</div>
-          <div class="pt-1.5 mt-1.5 border-t border-white/10 flex items-center justify-between gap-3">
-            <span class="text-[#2ec4b6] font-bold font-mono">${formatDistanceKm(q.distanceKm)}</span>
-            <span class="text-slate-400">~ ${formatDurationAr(q.estimatedMinutes)} بالشاحنة</span>
-          </div>
-        </div>`
-      );
+      marker.bindPopup(createQuarryPopupElement(q));
 
       marker.on('click', () => {
         onSelectRef.current(q.id);
@@ -148,34 +197,31 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
       markerByIdRef.current.set(q.id, marker);
     }
 
-    // Connecting line to selected quarry
-    if (selectedQuarry) {
+    if (selectedQuarry && Number.isFinite(origin.lat) && Number.isFinite(origin.lng)) {
       routeLineRef.current = L.polyline(
         [
           [origin.lat, origin.lng],
           [selectedQuarry.lat, selectedQuarry.lng],
         ],
         {
-          color: '#ff9f1c',
-          weight: 2,
+          color: '#f59e0b',
+          weight: 2.5,
           dashArray: '6 6',
-          opacity: 0.75,
+          opacity: 0.85,
         }
       ).addTo(map);
     }
   }, [quarries, origin, selectedQuarryId]);
 
-  // Smooth pan/zoom when focusCoords changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !focusCoords) return;
+    if (!map || !focusCoords || !Number.isFinite(focusCoords.lat) || !Number.isFinite(focusCoords.lng)) return;
 
     map.flyTo([focusCoords.lat, focusCoords.lng], focusCoords.zoom ?? 9, {
       duration: 0.6,
     });
   }, [focusCoords]);
 
-  // Open popup when selectedQuarryId changes
   useEffect(() => {
     if (!selectedQuarryId) return;
     const marker = markerByIdRef.current.get(selectedQuarryId);
@@ -185,7 +231,7 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
   }, [selectedQuarryId]);
 
   return (
-    <div className="relative h-[340px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0b0f14]">
+    <div className="relative h-[340px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden rounded-2xl border border-[#84cc16]/20 bg-[#080d0a]">
       <div
         ref={containerRef}
         data-testid="quarry-leaflet-map"
@@ -193,13 +239,13 @@ export const QuarryMapView: React.FC<QuarryMapViewProps> = ({
         aria-label="خريطة المحاجر الجزائرية التفاعلية"
       />
       {/* Compact Legend Overlay */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[400] flex flex-wrap items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0f1419]/88 px-3 py-2 text-xs text-slate-300 backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-3 right-3 z-[400] flex flex-wrap items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0b110d]/90 px-3 py-2 text-xs text-[#c5d6c9] backdrop-blur-md">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2ec4b6]" aria-hidden="true" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#84cc16]" aria-hidden="true" />
           <span>محجرة / مصنع</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" aria-hidden="true" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
           <span>الموقع المحدد</span>
         </span>
       </div>

@@ -1,9 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="112" fill="#0f1419"/>
-  <rect x="24" y="24" width="464" height="464" rx="92" fill="#19222a" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
-  <!-- Architectural Truss / Compass Emblem -->
-  <path d="M256 96L396 368H332L256 212L180 368H116L256 96Z" fill="#ff9f1c"/>
-  <path d="M168 312H344V352H168V312Z" fill="#2ec4b6"/>
-  <circle cx="256" cy="144" r="20" fill="#0f1419" stroke="#2ec4b6" stroke-width="8"/>
-  <path d="M128 408H384" stroke="rgba(255,255,255,0.22)" stroke-width="8" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="112" fill="#0b110d"/>
+  <rect x="28" y="28" width="456" height="456" rx="92" stroke="#84cc16" stroke-opacity="0.28" stroke-width="6"/>
+  <!-- Outer Kiwi Flesh Ring -->
+  <circle cx="256" cy="256" r="148" fill="#1a261e" stroke="#84cc16" stroke-width="18"/>
+  <!-- Kiwi Radiant Core & Engineering Crosshair -->
+  <circle cx="256" cy="256" r="56" fill="#d9f99d" fill-opacity="0.18" stroke="#a3e635" stroke-width="4"/>
+  <!-- Kiwi Seeds / Surveying Degree Ticks -->
+  <circle cx="256" cy="156" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="326" cy="186" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="356" cy="256" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="326" cy="326" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="256" cy="356" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="186" cy="326" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="156" cy="256" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <circle cx="186" cy="186" r="9" fill="#0b110d" stroke="#f59e0b" stroke-width="4"/>
+  <!-- Engineering Compass Needle -->
+  <path d="M256 176L282 256L256 336L230 256L256 176Z" fill="#84cc16"/>
+  <path d="M256 176L282 256H230L256 176Z" fill="#d9f99d"/>
+  <circle cx="256" cy="256" r="14" fill="#0b110d" stroke="#f59e0b" stroke-width="5"/>
 </svg>

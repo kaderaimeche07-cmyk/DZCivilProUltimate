@@ -1,6 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
@@ -19,8 +18,8 @@ export default defineConfig(() => {
           name: 'DZ Civil Pro Ultimate',
           short_name: 'DZ Civil Pro',
           description: 'منصة الهندسة المدنية الميدانية في الجزائر: دليل المحاجر 58 ولاية وحاسبات الخرسانة والحديد دون إنترنت.',
-          theme_color: '#0f1419',
-          background_color: '#0f1419',
+          theme_color: '#0b110d',
+          background_color: '#0b110d',
           display: 'standalone',
           orientation: 'portrait-primary',
           dir: 'rtl',
@@ -50,7 +49,6 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-          globIgnores: ['downloads/**'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -104,7 +102,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': import.meta.dirname,
       },
     },
     server: {

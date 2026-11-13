@@ -117,3 +117,39 @@ test('Trapezoidal section area and linear cut/fill earthworks handle zero-crossi
   assert.equal(earthworks.segments[0].hasTransitionPoint, true);
   assert.equal(earthworks.segments[0].transitionChainageM, 50);
 });
+
+test('Calculators neutralize NaN/Infinity optionals and reject invalid keys or station coordinates', () => {
+  const concrete = calculateConcreteMix({
+    lengthM: 4,
+    widthM: 2,
+    thicknessM: 0.5,
+    dosageKgPerM3: 350,
+    wastePercent: Number.NaN,
+  });
+  assert.equal(concrete.valid, true);
+  assert.equal(Number.isFinite(concrete.grossVolumeM3), true);
+  assert.equal(concrete.grossVolumeM3, 4.2); // defaults back to 5% waste safely
+
+  const masonry = calculateMasonryWall({
+    wallLengthM: 4,
+    wallHeightM: 3,
+    openingsAreaM2: Number.NaN,
+    wastePercent: Number.POSITIVE_INFINITY,
+    unitType: 'brick_8',
+  });
+  assert.equal(masonry.valid, true);
+  assert.equal(masonry.netAreaM2, 12);
+  assert.equal(Number.isFinite(masonry.totalUnitsWithWaste), true);
+
+  const badStationRoad = calculateLinearCutFill({
+    roadWidthM: 8,
+    sideSlopeRatio: 1.5,
+    swellFactor: Number.NaN,
+    stations: [
+      { id: 's1', chainageM: 0, groundElevM: 100, designElevM: 100 },
+      { id: 's2', chainageM: 100, groundElevM: Number.NaN, designElevM: 102 },
+    ],
+  });
+  assert.equal(badStationRoad.valid, false);
+  assert.ok(badStationRoad.error);
+});

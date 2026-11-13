@@ -52,7 +52,7 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
           <div>
             <label
               htmlFor="wilaya-select"
-              className="mb-1.5 block text-xs font-semibold text-slate-300"
+              className="mb-1.5 block text-xs font-semibold text-[#c5d6c9]"
             >
               اختر الولاية (58 ولاية جزائرية)
             </label>
@@ -60,10 +60,10 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
               id="wilaya-select"
               value={selectedWilayaCode}
               onChange={(e) => onSelectWilaya(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0f1419] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition-colors focus:border-[#ff9f1c]"
+              className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0b110d] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition-colors focus:border-[#84cc16]"
             >
               {ALGERIAN_WILAYAT.map((w) => (
-                <option key={w.code} value={w.code} className="bg-[#19222a] text-white">
+                <option key={w.code} value={w.code} className="bg-[#121b15] text-white">
                   {w.code} - {w.arName} ({w.frName})
                 </option>
               ))}
@@ -83,17 +83,17 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
 
         {/* Active Origin Coordinates Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-300">
+          <div className="flex items-center gap-2 text-[#c5d6c9]">
             <CheckCircle2
               className={`h-4 w-4 shrink-0 ${
-                origin.source === 'gps' ? 'text-[#2ec4b6]' : 'text-[#ff9f1c]'
+                origin.source === 'gps' ? 'text-[#a3e635]' : 'text-[#f59e0b]'
               }`}
             />
             <span>
               نقطة القياس النشطة: <strong className="text-white">{origin.label}</strong>
             </span>
           </div>
-          <div className="font-mono-tabular text-slate-400" dir="ltr">
+          <div className="font-mono-tabular text-[#a3b8a8]" dir="ltr">
             {origin.lat.toFixed(4)}° N, {origin.lng.toFixed(4)}° E
             {origin.accuracyMeters ? ` (±${origin.accuracyMeters}m)` : ''}
           </div>
@@ -102,9 +102,9 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
         {gpsError && (
           <div
             role="alert"
-            className="flex items-start gap-2.5 rounded-xl border border-[#ff9f1c]/35 bg-[#ff9f1c]/10 p-3 text-xs leading-relaxed text-[#ffbe6b]"
+            className="flex items-start gap-2.5 rounded-xl border border-[#f59e0b]/35 bg-[#f59e0b]/10 p-3 text-xs leading-relaxed text-[#fde68a]"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#ff9f1c]" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#f59e0b]" />
             <span>{gpsError}</span>
           </div>
         )}
@@ -116,14 +116,14 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
           <label htmlFor="quarry-search" className="sr-only">
             ابحث عن محجرة أو بلدية أو مادة بناء
           </label>
-          <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3b8a8]" />
           <input
             id="quarry-search"
             type="search"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="ابحث بالاسم، الولاية، البلدية، أو نوع المادة (مثلاً: 8/15، CPJ 42.5)..."
-            className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0f1419] pr-10 pl-4 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition-colors focus:border-[#2ec4b6]"
+            className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0b110d] pr-10 pl-4 py-2 text-sm text-white placeholder:text-[#6b7f70] outline-none transition-colors focus:border-[#84cc16]"
           />
         </div>
 
@@ -137,10 +137,10 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => onSelectCategory(cat.id)}
-                className={`min-h-[38px] rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`min-h-[38px] rounded-xl px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-[#2ec4b6] text-[#0f1419]'
-                    : 'bg-[#222d38] text-slate-300 hover:bg-[#2a3744] hover:text-white'
+                    ? 'bg-[#84cc16] text-[#081006]'
+                    : 'bg-[#1a261e] text-[#c5d6c9] hover:bg-[#223227] hover:text-white'
                 }`}
               >
                 {cat.label}
@@ -149,7 +149,7 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
           })}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+        <div className="flex items-center justify-between text-xs text-[#a3b8a8] pt-1">
           <span>
             المواقع المطابقة: <strong className="font-mono-tabular text-white">{quarries.length}</strong>
           </span>
@@ -164,11 +164,11 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
       >
         {quarries.length === 0 ? (
           <div className="glass-surface rounded-2xl p-8 text-center space-y-2">
-            <MapPin className="mx-auto h-7 w-7 text-slate-500" />
+            <MapPin className="mx-auto h-7 w-7 text-[#6b7f70]" />
             <p className="text-sm font-semibold text-slate-200">
               لم يتم العثور على محاجر مطابقة لبحثك
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#a3b8a8]">
               جرّب إزالة نص البحث أو اختيار فئة &quot;الكل&quot; لعرض جميع المحاجر والمصانع.
             </p>
             <button
@@ -177,7 +177,7 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
                 onSearchChange('');
                 onSelectCategory('all');
               }}
-              className="mt-2 inline-flex min-h-[40px] items-center rounded-xl border border-white/10 bg-[#222d38] px-4 py-2 text-xs font-semibold text-white hover:border-[#2ec4b6]/40 cursor-pointer"
+              className="mt-2 inline-flex min-h-[40px] items-center rounded-xl border border-white/10 bg-[#1a261e] px-4 py-2 text-xs font-semibold text-white hover:border-[#84cc16]/40 cursor-pointer"
             >
               إعادة ضبط التصفية
             </button>
@@ -192,14 +192,14 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
                 onClick={() => onSelectQuarry(quarry)}
                 className={`w-full text-right rounded-2xl p-4 transition-colors cursor-pointer border ${
                   isSelected
-                    ? 'bg-[#222d38] border-[#ff9f1c]/70'
-                    : 'bg-[#19222a]/90 border-white/[0.08] hover:border-white/20 hover:bg-[#1e2933]'
+                    ? 'bg-[#1a261e] border-[#84cc16]/75'
+                    : 'bg-[#121b15]/90 border-white/[0.08] hover:border-white/20 hover:bg-[#17231b]'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono-tabular text-xs font-bold text-[#ff9f1c]">
+                      <span className="font-mono-tabular text-xs font-bold text-[#fbbf24]">
                         {String(idx + 1).padStart(2, '0')}
                       </span>
                       <h3 className="text-sm sm:text-base font-bold text-white truncate">
@@ -208,31 +208,31 @@ export const QuarryDirectory: React.FC<QuarryDirectoryProps> = ({
                     </div>
 
                     {/* Zero-pill unboxed metadata with middle-dot separators */}
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#a3b8a8]">
                       <span>
                         {quarry.wilayaCode} {quarry.wilayaName}
                       </span>
                       <span aria-hidden="true">·</span>
                       <span>{quarry.municipality}</span>
                       <span aria-hidden="true">·</span>
-                      <span className="text-[#2ec4b6] font-medium">{quarry.categoryLabel}</span>
+                      <span className="text-[#a3e635] font-medium">{quarry.categoryLabel}</span>
                     </div>
 
-                    <p className="text-xs text-slate-300 pt-1">
+                    <p className="text-xs text-[#d4e2d7] pt-1">
                       المواد: {quarry.materials.join(' · ')}
                     </p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-[#a3b8a8]">
                       {quarry.rockType} — {quarry.capacityNote}
                     </p>
                   </div>
 
                   {/* Live Haversine Distance Metric */}
                   <div className="shrink-0 text-left">
-                    <div className="flex items-center justify-end gap-1 font-mono-tabular text-base font-bold text-[#2ec4b6]">
+                    <div className="flex items-center justify-end gap-1 font-mono-tabular text-base font-bold text-[#a3e635]">
                       <span>{formatDistanceKm(quarry.distanceKm)}</span>
                       <Navigation className="h-3.5 w-3.5" />
                     </div>
-                    <div className="mt-0.5 font-mono-tabular text-[11px] text-slate-400">
+                    <div className="mt-0.5 font-mono-tabular text-[11px] text-[#a3b8a8]">
                       ~ {formatDurationAr(quarry.estimatedMinutes)}
                     </div>
                   </div>

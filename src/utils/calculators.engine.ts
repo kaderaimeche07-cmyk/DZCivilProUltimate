@@ -1,3 +1,5 @@
+import { sanitizeFiniteNumber } from './security';
+
 export type ConcreteDosage = 250 | 300 | 350 | 400;
 
 export interface ConcreteInput {
@@ -54,10 +56,6 @@ export function calculateConcreteMix(input: ConcreteInput): ConcreteResult {
     };
   }
 
-  const safeWaste = Math.max(0, Math.min(30, wastePercent));
-  const netVolumeM3 = lengthM * widthM * thicknessM;
-  const grossVolumeM3 = netVolumeM3 * (1 + safeWaste / 100);
-
   const ratioTable: Record<ConcreteDosage, { sandPerM3: number; gravelPerM3: number; waterPerM3: number }> = {
     250: { sandPerM3: 0.45, gravelPerM3: 0.82, waterPerM3: 150 },
     300: { sandPerM3: 0.42, gravelPerM3: 0.81, waterPerM3: 165 },
@@ -66,6 +64,26 @@ export function calculateConcreteMix(input: ConcreteInput): ConcreteResult {
   };
 
   const ratios = ratioTable[dosageKgPerM3];
+  if (!ratios) {
+    return {
+      valid: false,
+      error: 'عيار الخرسانة المحدد غير مدعوم.',
+      netVolumeM3: 0,
+      grossVolumeM3: 0,
+      cementKg: 0,
+      cementBags50kg: 0,
+      sandM3: 0,
+      sandTonnes: 0,
+      gravelM3: 0,
+      gravelTonnes: 0,
+      waterLiters: 0,
+      mixTrucks7m3: 0,
+    };
+  }
+
+  const safeWaste = sanitizeFiniteNumber(wastePercent, 5, 0, 30);
+  const netVolumeM3 = lengthM * widthM * thicknessM;
+  const grossVolumeM3 = netVolumeM3 * (1 + safeWaste / 100);
   const cementKg = grossVolumeM3 * dosageKgPerM3;
   const cementBags50kg = Math.ceil(cementKg / 50);
   const sandM3 = grossVolumeM3 * ratios.sandPerM3;
@@ -127,14 +145,18 @@ export interface RebarResult {
 export function calculateRebarWeight(input: RebarInput): RebarResult {
   const { diameterMm, totalLengthM, wastePercent = 3 } = input;
   const unitWeightKgPerM = REBAR_UNIT_WEIGHTS_KG_M[diameterMm];
-  const crossSectionMm2 = Number((Math.PI * Math.pow(diameterMm / 2, 2)).toFixed(1));
+  const crossSectionMm2 = Number.isFinite(diameterMm) && diameterMm > 0
+    ? Number((Math.PI * Math.pow(diameterMm / 2, 2)).toFixed(1))
+    : 0;
 
-  if (!Number.isFinite(totalLengthM) || totalLengthM <= 0) {
+  if (!unitWeightKgPerM || !Number.isFinite(totalLengthM) || totalLengthM <= 0) {
     return {
       valid: false,
-      error: 'يرجى إدخال طول إجمالي موجب للحديد بالمتر.',
+      error: !unitWeightKgPerM
+        ? 'قطر حديد التسليح غير مدعوم في الجدول القياسي.'
+        : 'يرجى إدخال طول إجمالي موجب للحديد بالمتر.',
       diameterMm,
-      unitWeightKgPerM,
+      unitWeightKgPerM: unitWeightKgPerM ?? 0,
       crossSectionMm2,
       netWeightKg: 0,
       grossWeightKg: 0,
@@ -143,7 +165,7 @@ export function calculateRebarWeight(input: RebarInput): RebarResult {
     };
   }
 
-  const safeWaste = Math.max(0, Math.min(25, wastePercent));
+  const safeWaste = sanitizeFiniteNumber(wastePercent, 3, 0, 25);
   const netWeightKg = totalLengthM * unitWeightKgPerM;
   const grossWeightKg = netWeightKg * (1 + safeWaste / 100);
   const commercial12mBars = Math.ceil((totalLengthM * (1 + safeWaste / 100)) / 12);
@@ -232,10 +254,10 @@ export function calculateMasonryWall(input: MasonryInput): MasonryResult {
   const { wallLengthM, wallHeightM, openingsAreaM2 = 0, unitType, wastePercent = 5 } = input;
   const spec = MASONRY_SPECS[unitType];
 
-  if (!Number.isFinite(wallLengthM) || !Number.isFinite(wallHeightM) || wallLengthM <= 0 || wallHeightM <= 0) {
+  if (!spec || !Number.isFinite(wallLengthM) || !Number.isFinite(wallHeightM) || wallLengthM <= 0 || wallHeightM <= 0) {
     return {
       valid: false,
-      error: 'يرجى إدخال طول وارتفاع الجدار بقيم موجبة.',
+      error: !spec ? 'نوع وحدة البناء غير معروف.' : 'يرجى إدخال طول وارتفاع الجدار بقيم موجبة.',
       grossAreaM2: 0,
       netAreaM2: 0,
       netUnits: 0,
@@ -247,7 +269,7 @@ export function calculateMasonryWall(input: MasonryInput): MasonryResult {
   }
 
   const grossAreaM2 = wallLengthM * wallHeightM;
-  const safeOpenings = Math.max(0, openingsAreaM2);
+  const safeOpenings = sanitizeFiniteNumber(openingsAreaM2, 0, 0);
   if (safeOpenings >= grossAreaM2) {
     return {
       valid: false,
@@ -262,7 +284,7 @@ export function calculateMasonryWall(input: MasonryInput): MasonryResult {
     };
   }
 
-  const safeWaste = Math.max(0, Math.min(25, wastePercent));
+  const safeWaste = sanitizeFiniteNumber(wastePercent, 5, 0, 25);
   const netAreaM2 = grossAreaM2 - safeOpenings;
   const netUnits = Math.ceil(netAreaM2 * spec.unitsPerM2);
   const totalUnitsWithWaste = Math.ceil(netAreaM2 * spec.unitsPerM2 * (1 + safeWaste / 100));
@@ -547,6 +569,28 @@ export function calculateLinearCutFill(input: LinearCutFillInput): LinearCutFill
     };
   }
 
+  const hasInvalidStation = stations.some(
+    (s) =>
+      !s ||
+      !Number.isFinite(s.chainageM) ||
+      !Number.isFinite(s.groundElevM) ||
+      !Number.isFinite(s.designElevM)
+  );
+  if (hasInvalidStation) {
+    return {
+      valid: false,
+      error: 'تحتوي إحدى المحطات على قيم غير رقمية أو غير صالحة في المسافة أو المناسيب.',
+      totalLengthM: 0,
+      totalCutVolumeM3: 0,
+      totalFillVolumeM3: 0,
+      swelledCutVolumeM3: 0,
+      netEarthBalanceM3: 0,
+      truckTrips15m3: 0,
+      maxAbsGradientPercent: 0,
+      segments: [],
+    };
+  }
+
   const sorted = [...stations].sort((a, b) => a.chainageM - b.chainageM);
   let totalLengthM = 0;
   let totalCutVolumeM3 = 0;
@@ -644,7 +688,7 @@ export function calculateLinearCutFill(input: LinearCutFillInput): LinearCutFill
     });
   }
 
-  const safeSwell = Math.max(1, Math.min(1.6, swellFactor));
+  const safeSwell = sanitizeFiniteNumber(swellFactor, 1.2, 1, 1.6);
   const swelledCutVolumeM3 = totalCutVolumeM3 * safeSwell;
   const netEarthBalanceM3 = totalCutVolumeM3 - totalFillVolumeM3;
   const truckTrips15m3 = Math.ceil(Math.max(swelledCutVolumeM3, totalFillVolumeM3) / 15);
@@ -661,4 +705,111 @@ export function calculateLinearCutFill(input: LinearCutFillInput): LinearCutFill
     segments,
   };
 }
+
+// ============================================================================
+// COST ESTIMATION IN ALGERIAN DINARS (تقدير التكلفة بالدينار الجزائري DZD)
+// ============================================================================
+
+export interface ConcreteUnitPricesDzd {
+  cementBag50kg: number; // ~750 DZD
+  sandM3: number; // ~2400 DZD
+  gravelM3: number; // ~2200 DZD
+}
+
+export const DEFAULT_CONCRETE_PRICES_DZD: ConcreteUnitPricesDzd = {
+  cementBag50kg: 750,
+  sandM3: 2400,
+  gravelM3: 2200,
+};
+
+export function calculateConcreteCostDzd(
+  result: ConcreteResult,
+  prices: ConcreteUnitPricesDzd = DEFAULT_CONCRETE_PRICES_DZD
+): number {
+  if (!result.valid) return 0;
+  const total =
+    sanitizeFiniteNumber(result.cementBags50kg, 0, 0) * sanitizeFiniteNumber(prices.cementBag50kg, 0, 0) +
+    sanitizeFiniteNumber(result.sandM3, 0, 0) * sanitizeFiniteNumber(prices.sandM3, 0, 0) +
+    sanitizeFiniteNumber(result.gravelM3, 0, 0) * sanitizeFiniteNumber(prices.gravelM3, 0, 0);
+  return Number.isFinite(total) ? Math.round(total) : 0;
+}
+
+export function calculateRebarCostDzd(grossWeightKg: number, pricePerTonneDzd = 155000): number {
+  if (!Number.isFinite(grossWeightKg) || grossWeightKg <= 0) return 0;
+  const safePrice = sanitizeFiniteNumber(pricePerTonneDzd, 0, 0);
+  const total = (grossWeightKg / 1000) * safePrice;
+  return Number.isFinite(total) ? Math.round(total) : 0;
+}
+
+export function calculateMasonryCostDzd(
+  totalUnits: number,
+  cementBags: number,
+  sandM3: number,
+  unitPriceDzd = 32,
+  cementBagPriceDzd = 750,
+  sandM3PriceDzd = 2400
+): number {
+  const total =
+    sanitizeFiniteNumber(totalUnits, 0, 0) * sanitizeFiniteNumber(unitPriceDzd, 0, 0) +
+    sanitizeFiniteNumber(cementBags, 0, 0) * sanitizeFiniteNumber(cementBagPriceDzd, 0, 0) +
+    sanitizeFiniteNumber(sandM3, 0, 0) * sanitizeFiniteNumber(sandM3PriceDzd, 0, 0);
+  return Number.isFinite(total) ? Math.round(total) : 0;
+}
+
+export function calculateEarthworksCostDzd(
+  cutVolumeM3: number,
+  fillVolumeM3: number,
+  cutRateDzd = 450,
+  fillRateDzd = 750
+): number {
+  const total =
+    sanitizeFiniteNumber(cutVolumeM3, 0, 0) * sanitizeFiniteNumber(cutRateDzd, 0, 0) +
+    sanitizeFiniteNumber(fillVolumeM3, 0, 0) * sanitizeFiniteNumber(fillRateDzd, 0, 0);
+  return Number.isFinite(total) ? Math.round(total) : 0;
+}
+
+export function formatDzd(amount: number): string {
+  if (!Number.isFinite(amount)) return '0 دج';
+  return `${Math.round(amount).toLocaleString('en-US')} دج`;
+}
+
+export interface EngineeringStandardCard {
+  id: string;
+  code: string;
+  title: string;
+  value: string;
+  note: string;
+}
+
+export const ALGERIAN_ENGINEERING_STANDARDS: EngineeringStandardCard[] = [
+  {
+    id: 'cover',
+    code: 'CBA 93 / RPA',
+    title: 'التغطية الخرسانية الدنيا (Enrobage)',
+    value: '2.5 – 5.0 سم',
+    note: '2.5 سم للعناصر الداخلية، 3 سم للواجهات، و5 سم للأساسات الملامسة للتربة.',
+  },
+  {
+    id: 'lap',
+    code: 'RPA 99 / 2024',
+    title: 'طول التراكب والتوصيل (Recouvrement)',
+    value: '40 Ø – 50 Ø',
+    note: '40 مرة القطر في المناطق العادية و50 Ø في المناطق الزلزالية (المنطقة IIb و III).',
+  },
+  {
+    id: 'fc28',
+    code: 'B25 / CPJ 42.5',
+    title: 'مقاومة الخرسانة المسلحة (fc28)',
+    value: '25 MPa (255 كغ/سم²)',
+    note: 'عيار 350 كغ/م³ القياسي يحقق مقاومة 25 ميغاباسكال عند 28 يوماً مع نسبة ماء/إسمنت ~0.50.',
+  },
+  {
+    id: 'b40',
+    code: 'B40 الطرقات',
+    title: 'حدود الميول الطولية للطرق',
+    value: '0.5% – 7.0%',
+    note: 'أدنى ميل 0.5% لتصريف المياه، مثالي ≤5% للطرق الوطنية، وأقصى 10% للمسالك الجبلية.',
+  },
+];
+
 

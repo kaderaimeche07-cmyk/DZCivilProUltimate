@@ -7,5 +7,6 @@ export interface SavedBoqItem {
   title: string;
   summary: string;
   metrics: { label: string; value: string }[];
+  estimatedCostDzd?: number;
   createdAtIso: string;
 }

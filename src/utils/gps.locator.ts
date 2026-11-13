@@ -46,7 +46,8 @@ export function calculateHaversineKm(
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const clampedA = Math.min(1, Math.max(0, a));
+  const c = 2 * Math.atan2(Math.sqrt(clampedA), Math.sqrt(1 - clampedA));
   return Number((EARTH_RADIUS_KM * c).toFixed(2));
 }
 
@@ -55,7 +56,7 @@ export function calculateHaversineKm(
  * and average 55 km/h construction truck speed.
  */
 export function estimateHaulageMinutes(straightLineKm: number): number {
-  if (straightLineKm <= 0) return 0;
+  if (!Number.isFinite(straightLineKm) || straightLineKm <= 0) return 0;
   const roadKm = straightLineKm * 1.28;
   return Math.max(2, Math.round((roadKm / 55) * 60));
 }
@@ -77,6 +78,7 @@ export function attachDistancesAndSort(
 }
 
 export function formatDistanceKm(km: number): string {
+  if (!Number.isFinite(km) || km < 0) return '—';
   if (km < 1) {
     return `${Math.round(km * 1000)} م`;
   }
@@ -84,11 +86,13 @@ export function formatDistanceKm(km: number): string {
 }
 
 export function formatDurationAr(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} د`;
+  if (!Number.isFinite(minutes) || minutes < 0) return '—';
+  const rounded = Math.round(minutes);
+  if (rounded < 60) {
+    return `${rounded} د`;
   }
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const h = Math.floor(rounded / 60);
+  const m = rounded % 60;
   return m > 0 ? `${h} س ${m} د` : `${h} س`;
 }
 
