@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Route,
   TrendingUp,
@@ -17,7 +17,6 @@ import {
   calculateRoadGradient,
   calculateLinearCutFill,
   calculateEarthworksCostDzd,
-  formatDzd,
   type RoadStationPoint,
 } from '../utils/calculators.engine';
 import { LENGTH_UNITS, toMeters, type LengthUnit } from '../utils/units';
@@ -27,6 +26,13 @@ import { TelemetryReadoutStrip, type TelemetryMetricItem } from './TelemetryRead
 import { LiveResultBanner } from './LiveResultBanner';
 import { CollapsibleSection } from './CollapsibleSection';
 import type { SavedBoqItem } from '../types/boq';
+import { useI18n } from '../i18n/I18nContext';
+import {
+  TRANSLATIONS,
+  formatCurrencyLocale,
+  getInitialLang,
+  getUnitDisplay,
+} from '../i18n/translations';
 
 interface RoadDesignCalculatorProps {
   onSaveToBoq: (item: SavedBoqItem) => void;
@@ -41,9 +47,19 @@ const DEFAULT_STATIONS: RoadStationPoint[] = [
 
 const PK_UNITS = [LENGTH_UNITS.m, LENGTH_UNITS.km, LENGTH_UNITS.cm];
 
+const DEFAULT_PROJECT_TITLES = new Set<string>([
+  TRANSLATIONS.ar.roads.earthworks.defaultProjectTitle,
+  TRANSLATIONS.fr.roads.earthworks.defaultProjectTitle,
+  TRANSLATIONS.en.roads.earthworks.defaultProjectTitle,
+]);
+
 type RoadSubMode = 'gradient' | 'earthworks';
 
 export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSaveToBoq }) => {
+  const { lang, t } = useI18n();
+  const mSym = getUnitDisplay(lang, 'm').symbol;
+  const m3Sym = getUnitDisplay(lang, 'm3').symbol;
+
   const [roadMode, setRoadMode] = useState<RoadSubMode>('gradient');
 
   // 1. Start & End Point Gradient Analyzer
@@ -58,7 +74,9 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
   const [endZUnit, setEndZUnit] = useState<LengthUnit>('m');
 
   // 2. Linear Cut & Fill Earthworks
-  const [projectTitle, setProjectTitle] = useState('مقطع طريق ولائي — المحور الرئيسي');
+  const [projectTitle, setProjectTitle] = useState(
+    () => TRANSLATIONS[getInitialLang()].roads.earthworks.defaultProjectTitle
+  );
   const [roadWidthStr, setRoadWidthStr] = useState('9.0');
   const [roadWidthUnit, setRoadWidthUnit] = useState<LengthUnit>('m');
   const [sideSlopeStr, setSideSlopeStr] = useState('1.5');
@@ -66,14 +84,45 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
   const [stations, setStations] = useState<RoadStationPoint[]>(DEFAULT_STATIONS);
   const [crossSectionPreview, setCrossSectionPreview] = useState<'cut' | 'fill'>('fill');
 
+  useEffect(() => {
+    setProjectTitle((prev) =>
+      DEFAULT_PROJECT_TITLES.has(prev) ? t.roads.earthworks.defaultProjectTitle : prev
+    );
+  }, [t.roads.earthworks.defaultProjectTitle]);
+
+  const startChainageM = toMeters(Number(startPkStr), startPkUnit);
+  const startElevationM = toMeters(Number(startZStr), startZUnit);
+  const endChainageM = toMeters(Number(endPkStr), endPkUnit);
+  const endElevationM = toMeters(Number(endZStr), endZUnit);
+
   const gradientResult = useMemo(() => {
     return calculateRoadGradient({
-      startChainageM: toMeters(Number(startPkStr), startPkUnit),
-      startElevationM: toMeters(Number(startZStr), startZUnit),
-      endChainageM: toMeters(Number(endPkStr), endPkUnit),
-      endElevationM: toMeters(Number(endZStr), endZUnit),
+      startChainageM,
+      startElevationM,
+      endChainageM,
+      endElevationM,
     });
-  }, [startPkStr, startPkUnit, startZStr, startZUnit, endPkStr, endPkUnit, endZStr, endZUnit]);
+  }, [startChainageM, startElevationM, endChainageM, endElevationM]);
+
+  const localizedGradientError = useMemo(() => {
+    if (gradientResult.valid) return '';
+    if (
+      !Number.isFinite(startChainageM) ||
+      !Number.isFinite(startElevationM) ||
+      !Number.isFinite(endChainageM) ||
+      !Number.isFinite(endElevationM)
+    ) {
+      return t.roads.gradient.errorNumeric;
+    }
+    return t.roads.gradient.errorDistance;
+  }, [
+    gradientResult.valid,
+    startChainageM,
+    startElevationM,
+    endChainageM,
+    endElevationM,
+    t.roads.gradient,
+  ]);
 
   const roadWidthM = useMemo(
     () => toMeters(Number(roadWidthStr), roadWidthUnit),
@@ -88,6 +137,30 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
       stations,
     });
   }, [roadWidthM, sideSlopeStr, swellFactorStr, stations]);
+
+  const localizedEarthworksError = useMemo(() => {
+    if (earthworksResult.valid) return '';
+    const slopeNum = Number(sideSlopeStr);
+    if (!Number.isFinite(roadWidthM) || roadWidthM <= 0) {
+      return t.roads.earthworks.errors.width;
+    }
+    if (!Number.isFinite(slopeNum) || slopeNum < 0) {
+      return t.roads.earthworks.errors.talus;
+    }
+    if (stations.length < 2) {
+      return t.roads.earthworks.errors.minStations;
+    }
+    const allFinite = stations.every(
+      (s) =>
+        Number.isFinite(s.chainageM) &&
+        Number.isFinite(s.groundElevM) &&
+        Number.isFinite(s.designElevM)
+    );
+    if (!allFinite) {
+      return t.roads.earthworks.errors.invalidStation;
+    }
+    return t.roads.earthworks.errors.increasingPk;
+  }, [earthworksResult.valid, roadWidthM, sideSlopeStr, stations, t.roads.earthworks.errors]);
 
   const estimatedEarthworksDzd = useMemo(() => {
     return calculateEarthworksCostDzd(
@@ -107,91 +180,100 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
         <Minus className="h-4 w-4 text-[#b7c9bc] shrink-0" />
       );
 
+    const directionLabel = t.roads.gradient.directions[gradientResult.direction];
+    const ratioText =
+      gradientResult.direction === 'palier'
+        ? t.roads.gradient.ratioFlat
+        : gradientResult.slopeRatioText;
+
     return [
       {
         id: 'grad-slope',
-        label: 'نسبة الميل الطولي',
+        label: t.roads.gradient.metrics.slope,
         value: `${gradientResult.slopePercent}%`,
-        subtext: gradientResult.directionLabelAr,
+        subtext: directionLabel,
         accent: 'kiwi',
         dir: 'ltr',
         icon: slopeIcon,
       },
       {
         id: 'grad-angle',
-        label: 'زاوية / نسبة الميل',
+        label: t.roads.gradient.metrics.angleRatio,
         value: `${gradientResult.slopeAngleDeg}°`,
-        subtext: gradientResult.slopeRatioText,
+        subtext: ratioText,
         accent: 'neutral',
         dir: 'ltr',
       },
       {
         id: 'grad-dl',
-        label: 'المسافة الأفقية (ΔL)',
+        label: t.roads.gradient.metrics.horizDist,
         value: gradientResult.horizontalDistanceM,
-        unit: 'م',
+        unit: mSym,
         accent: 'neutral',
       },
       {
         id: 'grad-dz',
-        label: 'فرق المنسوب (ΔZ)',
+        label: t.roads.gradient.metrics.elevDiff,
         value: `${gradientResult.elevationDiffM > 0 ? `+${gradientResult.elevationDiffM}` : gradientResult.elevationDiffM} m`,
         accent: 'amber',
         dir: 'ltr',
       },
       {
         id: 'grad-dist',
-        label: 'المسافة المائلة الحقيقية',
+        label: t.roads.gradient.metrics.slopeDist,
         value: gradientResult.slopeDistanceM,
-        unit: 'م',
+        unit: mSym,
         accent: 'neutral',
       },
     ];
-  }, [gradientResult]);
+  }, [gradientResult, t.roads.gradient, mSym]);
 
   const earthworksTelemetry: TelemetryMetricItem[] = useMemo(() => {
     if (!earthworksResult.valid) return [];
     return [
       {
         id: 'earth-len',
-        label: 'الطول الخطي / أقصى ميل',
+        label: t.roads.earthworks.metrics.lengthMaxSlope,
         value: earthworksResult.totalLengthM,
-        unit: 'م',
-        subtext: `ميل أقصى ${earthworksResult.maxAbsGradientPercent}%`,
+        unit: mSym,
+        subtext: t.roads.earthworks.metrics.maxSlopeSub(earthworksResult.maxAbsGradientPercent),
         accent: 'neutral',
       },
       {
         id: 'earth-cut',
-        label: 'إجمالي الحفر (Déblais)',
+        label: t.roads.earthworks.metrics.totalCut,
         value: earthworksResult.totalCutVolumeM3,
-        unit: 'م³',
-        subtext: `بعد الانتفاش: ${earthworksResult.swelledCutVolumeM3} م³`,
+        unit: m3Sym,
+        subtext: t.roads.earthworks.metrics.swelledSub(earthworksResult.swelledCutVolumeM3),
         accent: 'amber',
       },
       {
         id: 'earth-fill',
-        label: 'إجمالي الردم (Remblais)',
+        label: t.roads.earthworks.metrics.totalFill,
         value: earthworksResult.totalFillVolumeM3,
-        unit: 'م³',
+        unit: m3Sym,
         accent: 'kiwi',
       },
       {
         id: 'earth-bal',
-        label: 'الميزان الترابي الصافي',
+        label: t.roads.earthworks.metrics.netBalance,
         value: `${earthworksResult.netEarthBalanceM3 > 0 ? `+${earthworksResult.netEarthBalanceM3}` : earthworksResult.netEarthBalanceM3} m³`,
-        subtext: earthworksResult.netEarthBalanceM3 >= 0 ? 'فائض حفر للترحيل' : 'عجز ردم للاستجلاب',
+        subtext:
+          earthworksResult.netEarthBalanceM3 >= 0
+            ? t.roads.earthworks.metrics.surplusSub
+            : t.roads.earthworks.metrics.deficitSub,
         accent: earthworksResult.netEarthBalanceM3 >= 0 ? 'amber' : 'kiwi',
         dir: 'ltr',
       },
       {
         id: 'earth-trucks',
-        label: 'نقلات الشاحنات (15 م³)',
+        label: t.roads.earthworks.metrics.trucks,
         value: earthworksResult.truckTrips15m3,
-        unit: 'رحلة',
+        unit: t.roads.earthworks.metrics.tripUnit,
         accent: 'neutral',
       },
     ];
-  }, [earthworksResult]);
+  }, [earthworksResult, t.roads.earthworks.metrics, mSym, m3Sym]);
 
   const updateStation = (id: string, field: keyof Omit<RoadStationPoint, 'id'>, rawVal: string) => {
     const num = Number(rawVal);
@@ -226,21 +308,34 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
     if (!earthworksResult.valid) return;
     const balanceText =
       earthworksResult.netEarthBalanceM3 >= 0
-        ? `فائض حفر +${earthworksResult.netEarthBalanceM3} م³`
-        : `عجز ردم ${earthworksResult.netEarthBalanceM3} م³`;
+        ? t.roads.earthworks.boqSurplus(earthworksResult.netEarthBalanceM3)
+        : t.roads.earthworks.boqDeficit(earthworksResult.netEarthBalanceM3);
     const safeWidth = Number.isFinite(roadWidthM) ? roadWidthM.toFixed(2) : '0.00';
 
     onSaveToBoq({
       id: `road-${Date.now()}`,
       category: 'roads',
-      categoryLabel: 'تصميم الطرقات',
-      title: projectTitle.trim() || 'مشروع طريق خطي',
-      summary: `طول ${earthworksResult.totalLengthM} م · عرض ${safeWidth} م · ميل أقصى ${earthworksResult.maxAbsGradientPercent}%`,
+      categoryLabel: t.roads.earthworks.boqCategory,
+      title: projectTitle.trim() || t.roads.earthworks.defaultProjectTitle,
+      summary: t.roads.earthworks.boqSummary(
+        earthworksResult.totalLengthM,
+        safeWidth,
+        earthworksResult.maxAbsGradientPercent
+      ),
       metrics: [
-        { label: 'حجم الحفر (Déblais)', value: `${earthworksResult.totalCutVolumeM3} م³` },
-        { label: 'حجم الردم (Remblais)', value: `${earthworksResult.totalFillVolumeM3} م³` },
-        { label: 'الميزان الترابي', value: balanceText },
-        { label: 'رحلات الشاحنات (15 م³)', value: `${earthworksResult.truckTrips15m3} نقلة` },
+        {
+          label: t.roads.earthworks.boqMetrics.cut,
+          value: `${earthworksResult.totalCutVolumeM3} ${m3Sym}`,
+        },
+        {
+          label: t.roads.earthworks.boqMetrics.fill,
+          value: `${earthworksResult.totalFillVolumeM3} ${m3Sym}`,
+        },
+        { label: t.roads.earthworks.boqMetrics.balance, value: balanceText },
+        {
+          label: t.roads.earthworks.boqMetrics.trucks,
+          value: `${earthworksResult.truckTrips15m3} ${t.roads.earthworks.metrics.tripUnit}`,
+        },
       ],
       estimatedCostDzd: estimatedEarthworksDzd,
       createdAtIso: new Date().toISOString(),
@@ -250,7 +345,10 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
   const profileSvg = useMemo(() => {
     if (stations.length < 2) return null;
     const finiteStations = stations.every(
-      (s) => Number.isFinite(s.chainageM) && Number.isFinite(s.groundElevM) && Number.isFinite(s.designElevM)
+      (s) =>
+        Number.isFinite(s.chainageM) &&
+        Number.isFinite(s.groundElevM) &&
+        Number.isFinite(s.designElevM)
     );
     if (!finiteStations) return null;
 
@@ -272,12 +370,18 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
     const toX = (pk: number) => padX + ((pk - minPk) / pkSpan) * (w - padX * 2);
     const toY = (z: number) => h - padY - ((z - minZ) / zSpan) * (h - padY * 2);
 
-    const groundPoints = sorted.map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.groundElevM).toFixed(1)}`).join(' ');
-    const designPoints = sorted.map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.designElevM).toFixed(1)}`).join(' ');
+    const groundPoints = sorted
+      .map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.groundElevM).toFixed(1)}`)
+      .join(' ');
+    const designPoints = sorted
+      .map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.designElevM).toFixed(1)}`)
+      .join(' ');
 
     const areaBetweenPoints = [
       ...sorted.map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.designElevM).toFixed(1)}`),
-      ...[...sorted].reverse().map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.groundElevM).toFixed(1)}`),
+      ...[...sorted]
+        .reverse()
+        .map((s) => `${toX(s.chainageM).toFixed(1)},${toY(s.groundElevM).toFixed(1)}`),
     ].join(' ');
 
     return { sorted, w, h, toX, toY, groundPoints, designPoints, areaBetweenPoints };
@@ -289,13 +393,15 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
       ? 'text-[#84cc16] border-[#84cc16]/40 bg-[#84cc16]/10'
       : 'text-[#f59e0b] border-[#f59e0b]/40 bg-[#f59e0b]/10';
 
+  const complianceCopy = t.roads.gradient.compliance[gradientResult.compliance];
+
   return (
     <div className="space-y-5">
       {/* Focused Segmented Switcher for Roads Workspace */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
           role="tablist"
-          aria-label="أدوات تصميم الطرقات"
+          aria-label={t.roads.tablistAria}
           className="grid grid-cols-2 sm:inline-flex items-center gap-1.5 rounded-[14px] bg-[#070b09] p-1.5 border border-white/[0.08] w-full sm:w-auto"
         >
           <button
@@ -309,7 +415,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                 : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
             }`}
           >
-            الميل والانحدار (<bdi dir="ltr">Pente</bdi>)
+            {t.roads.tabGradient} (<bdi dir="ltr">Pente</bdi>)
           </button>
           <button
             type="button"
@@ -322,11 +428,13 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                 : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
             }`}
           >
-            الحفر والردم (<bdi dir="ltr">Profil en Long</bdi>)
+            {t.roads.tabEarthworks} (<bdi dir="ltr">Profil en Long</bdi>)
           </button>
         </div>
 
-        <span className="text-xs text-[#b7c9bc]">معايير الطرقات الوطنية والولائية <bdi dir="ltr">B40</bdi></span>
+        <span className="text-xs text-[#b7c9bc]">
+          {t.roads.standardBadgePrefix} <bdi dir="ltr">B40</bdi>
+        </span>
       </div>
 
       {/* MODE 1: GRADIENT ANALYZER */}
@@ -334,9 +442,9 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
         <div className="space-y-4">
           {gradientResult.valid && (
             <LiveResultBanner
-              label="تحليل الميل الطولي (B40)"
-              primaryValue={`${gradientResult.slopePercent}% (${gradientResult.directionLabelAr})`}
-              secondaryDetail={`ΔL = ${gradientResult.horizontalDistanceM} م`}
+              label={t.roads.gradient.liveLabel}
+              primaryValue={`${gradientResult.slopePercent}% (${t.roads.gradient.directions[gradientResult.direction]})`}
+              secondaryDetail={`ΔL = ${gradientResult.horizontalDistanceM} ${mSym}`}
             />
           )}
 
@@ -349,10 +457,10 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                 </span>
                 <div>
                   <h2 id="road-gradient-heading" className="text-lg font-bold text-[#f4f7f2]">
-                    تحليل الميل بين نقطتين (<bdi dir="ltr">Pente / Rampe</bdi>)
+                    {t.roads.gradient.heading} (<bdi dir="ltr">Pente / Rampe</bdi>)
                   </h2>
                   <p className="text-xs text-[#b7c9bc]">
-                    أدخل نقطتي البداية والنهاية (<bdi dir="ltr">PK</bdi> و <bdi dir="ltr">Z</bdi>) بأي وحدة لحساب الانحدار ومطابقة <bdi dir="ltr">B40</bdi>
+                    {t.roads.gradient.subtitlePrefix} (<bdi dir="ltr">PK &amp; Z</bdi> · <bdi dir="ltr">B40</bdi>)
                   </p>
                 </div>
               </div>
@@ -362,7 +470,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <UnitInputField
                       id="grad-start-pk"
-                      label="نقطة البداية (PK1)"
+                      label={t.roads.gradient.startPk}
                       valueStr={startPkStr}
                       onValueChange={setStartPkStr}
                       unit={startPkUnit}
@@ -372,7 +480,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                     />
                     <UnitInputField
                       id="grad-start-z"
-                      label="منسوب البداية (Z1)"
+                      label={t.roads.gradient.startZ}
                       valueStr={startZStr}
                       onValueChange={setStartZStr}
                       unit={startZUnit}
@@ -382,7 +490,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                     />
                     <UnitInputField
                       id="grad-end-pk"
-                      label="نقطة النهاية (PK2)"
+                      label={t.roads.gradient.endPk}
                       valueStr={endPkStr}
                       onValueChange={setEndPkStr}
                       unit={endPkUnit}
@@ -392,7 +500,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                     />
                     <UnitInputField
                       id="grad-end-z"
-                      label="منسوب النهاية (Z2)"
+                      label={t.roads.gradient.endZ}
                       valueStr={endZStr}
                       onValueChange={setEndZStr}
                       unit={endZUnit}
@@ -403,12 +511,17 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                   </div>
 
                   {!gradientResult.valid ? (
-                    <div role="alert" className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]">
+                    <div
+                      role="alert"
+                      className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]"
+                    >
                       <AlertCircle className="h-4 w-4 shrink-0 text-[#f59e0b]" />
-                      <span>{gradientResult.error}</span>
+                      <span>{localizedGradientError}</span>
                     </div>
                   ) : (
-                    <div className={`flex items-start gap-3 rounded-[14px] border p-3.5 text-xs transition-colors duration-200 ${complianceColor}`}>
+                    <div
+                      className={`flex items-start gap-3 rounded-[14px] border p-3.5 text-xs transition-colors duration-200 ${complianceColor}`}
+                    >
                       {gradientResult.compliance === 'OPTIMAL_HIGHWAY' ||
                       gradientResult.compliance === 'ACCEPTABLE_REGIONAL' ? (
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -416,8 +529,8 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                       )}
                       <div className="space-y-0.5">
-                        <div className="font-bold">{gradientResult.complianceLabelAr}</div>
-                        <div className="text-[#d4e2d7]">{gradientResult.recommendationAr}</div>
+                        <div className="font-bold">{complianceCopy.label}</div>
+                        <div className="text-[#d4e2d7]">{complianceCopy.rec}</div>
                       </div>
                     </div>
                   )}
@@ -429,8 +542,8 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                   </div>
                   <div className="lg:hidden">
                     <CollapsibleSection
-                      title="مثلث الانحدار ومقياس B40"
-                      subtitle="رسم هندسي توضيحي لنسبة الميل والفرق الرأسي"
+                      title={t.roads.gradient.cadMobileTitle}
+                      subtitle={t.roads.gradient.cadMobileSub}
                       icon={<Layers className="h-4 w-4 text-[#84cc16]" />}
                     >
                       <RoadSlopeCadDiagram result={gradientResult} />
@@ -458,13 +571,12 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
         <div className="space-y-4">
           {earthworksResult.valid && (
             <LiveResultBanner
-              label={`الحفر والردم · طول ${earthworksResult.totalLengthM} م`}
-              primaryValue={`حفر ${earthworksResult.totalCutVolumeM3} م³`}
-              secondaryDetail={`ردم ${earthworksResult.totalFillVolumeM3} م³`}
-              costText={formatDzd(estimatedEarthworksDzd)}
-              copyCostLabel="نسخ تكلفة الأشغال الترابية"
+              label={t.roads.earthworks.liveLabel(earthworksResult.totalLengthM)}
+              primaryValue={t.roads.earthworks.liveCut(earthworksResult.totalCutVolumeM3)}
+              secondaryDetail={t.roads.earthworks.liveFill(earthworksResult.totalFillVolumeM3)}
+              costText={formatCurrencyLocale(estimatedEarthworksDzd, lang)}
+              copyCostLabel={t.roads.earthworks.copyCostLabel}
               onSave={handleSaveEarthworks}
-              saveLabel="+ حفظ في المقايسة"
             />
           )}
 
@@ -474,10 +586,10 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
                 <div>
                   <h2 id="road-earthworks-heading" className="text-lg font-bold text-[#f4f7f2]">
-                    حسابات الحفر والردم (<bdi dir="ltr">Déblais / Remblais</bdi>)
+                    {t.roads.earthworks.heading} (<bdi dir="ltr">Déblais / Remblais</bdi>)
                   </h2>
                   <p className="text-xs text-[#b7c9bc]">
-                    أدخل عرض القارعة ومناسيب المحطات (<bdi dir="ltr">TN / Projet</bdi>) لحساب الحجوم الترابية
+                    {t.roads.earthworks.subtitlePrefix} (<bdi dir="ltr">TN / Projet</bdi>)
                   </p>
                 </div>
                 <button
@@ -486,7 +598,9 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                   className="inline-flex min-h-[44px] items-center gap-1.5 rounded-[12px] border border-[#84cc16]/45 bg-[#84cc16]/14 px-4 py-2 text-xs font-bold text-[#a3e635] hover:bg-[#84cc16]/24 transition-colors duration-200 cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>إضافة محطة (<bdi dir="ltr">PK</bdi>)</span>
+                  <span>
+                    {t.roads.earthworks.addStationBtn} (<bdi dir="ltr">PK</bdi>)
+                  </span>
                 </button>
               </div>
 
@@ -495,7 +609,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                 <div className="lg:col-span-4">
                   <UnitInputField
                     id="road-width"
-                    label="عرض القارعة (Plateforme)"
+                    label={t.roads.earthworks.roadWidthLabel}
                     valueStr={roadWidthStr}
                     onValueChange={setRoadWidthStr}
                     unit={roadWidthUnit}
@@ -504,15 +618,15 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                 </div>
                 <div className="lg:col-span-8">
                   <CollapsibleSection
-                    title="خيارات متقدمة للمحور"
-                    subtitle="اسم المشروع، ميل الأكتاف Talus، ومعامل الانتفاش"
-                    badge={`Talus ${sideSlopeStr}:1 · انتفاش ${swellFactorStr}`}
+                    title={t.roads.earthworks.advTitle}
+                    subtitle={t.roads.earthworks.advSub}
+                    badge={t.roads.earthworks.advBadge(sideSlopeStr, swellFactorStr)}
                     icon={<SlidersHorizontal className="h-4 w-4" />}
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                       <div>
                         <label htmlFor="road-proj-name" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                          اسم المحور / المشروع
+                          {t.roads.earthworks.projectNameLabel}
                         </label>
                         <input
                           id="road-proj-name"
@@ -524,7 +638,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                       </div>
                       <div>
                         <label htmlFor="road-batter" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                          ميل الأكتاف <bdi dir="ltr">Talus (H:V)</bdi>
+                          {t.roads.earthworks.talusLabel} <bdi dir="ltr">(H:V)</bdi>
                         </label>
                         <input
                           id="road-batter"
@@ -538,7 +652,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                       </div>
                       <div>
                         <label htmlFor="road-swell" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                          معامل الانتفاش
+                          {t.roads.earthworks.swellLabel}
                         </label>
                         <input
                           id="road-swell"
@@ -558,14 +672,24 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
 
               {/* Editable Station Points Table with Non-Clipping Single-Line Format */}
               <div className="overflow-x-auto rounded-[14px] border border-white/[0.08] bg-[#070b09]">
-                <table className="w-full text-right text-xs">
+                <table className="w-full text-start text-xs">
                   <thead className="bg-[#0b110d] text-[#b7c9bc] border-b border-white/[0.08]">
                     <tr>
-                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[120px]">المحطة <bdi dir="ltr">PK</bdi> (م)</th>
-                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">الأرض <bdi dir="ltr">TN</bdi> (م)</th>
-                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">المشروع <bdi dir="ltr">Projet</bdi> (م)</th>
-                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">الحالة الهندسية</th>
-                      <th className="px-3 py-3 font-semibold text-center whitespace-nowrap w-14">حذف</th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[120px]">
+                        {t.roads.earthworks.table.station} <bdi dir="ltr">PK</bdi> ({mSym})
+                      </th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">
+                        {t.roads.earthworks.table.ground} <bdi dir="ltr">TN</bdi> ({mSym})
+                      </th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">
+                        {t.roads.earthworks.table.design} <bdi dir="ltr">Projet</bdi> ({mSym})
+                      </th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap min-w-[130px]">
+                        {t.roads.earthworks.table.status}
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-center whitespace-nowrap w-14">
+                        {t.roads.earthworks.table.del}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.06] bg-[#0f1612]/90">
@@ -578,7 +702,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                           <td className="px-3 py-2">
                             <input
                               type="number"
-                              aria-label={`مسافة المحطة ${idx + 1}`}
+                              aria-label={t.roads.earthworks.table.pkAria(idx + 1)}
                               value={st.chainageM}
                               onChange={(e) => updateStation(st.id, 'chainageM', e.target.value)}
                               className="font-mono-tabular w-24 min-h-[44px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-2.5 py-1 text-[#f4f7f2] outline-none focus:border-[#84cc16]"
@@ -588,7 +712,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                             <input
                               type="number"
                               step="0.1"
-                              aria-label={`منسوب الأرض الطبيعية للمحطة ${idx + 1}`}
+                              aria-label={t.roads.earthworks.table.groundAria(idx + 1)}
                               value={st.groundElevM}
                               onChange={(e) => updateStation(st.id, 'groundElevM', e.target.value)}
                               className="font-mono-tabular w-24 sm:w-28 min-h-[44px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-2.5 py-1 text-[#f4f7f2] outline-none focus:border-[#f59e0b]"
@@ -598,7 +722,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                             <input
                               type="number"
                               step="0.1"
-                              aria-label={`منسوب المشروع للمحطة ${idx + 1}`}
+                              aria-label={t.roads.earthworks.table.designAria(idx + 1)}
                               value={st.designElevM}
                               onChange={(e) => updateStation(st.id, 'designElevM', e.target.value)}
                               className="font-mono-tabular w-24 sm:w-28 min-h-[44px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-2.5 py-1 text-[#f4f7f2] outline-none focus:border-[#84cc16]"
@@ -606,11 +730,17 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                           </td>
                           <td className="px-3 py-2 font-mono-tabular font-semibold whitespace-nowrap">
                             {isCut ? (
-                              <span className="text-[#f59e0b] whitespace-nowrap">حفر <bdi dir="ltr">{Math.abs(diff)}</bdi> م</span>
+                              <span className="text-[#f59e0b] whitespace-nowrap">
+                                {t.roads.earthworks.table.cutTag} <bdi dir="ltr">{Math.abs(diff)}</bdi> {mSym}
+                              </span>
                             ) : isFill ? (
-                              <span className="text-[#84cc16] whitespace-nowrap">ردم <bdi dir="ltr">+{diff}</bdi> م</span>
+                              <span className="text-[#84cc16] whitespace-nowrap">
+                                {t.roads.earthworks.table.fillTag} <bdi dir="ltr">+{diff}</bdi> {mSym}
+                              </span>
                             ) : (
-                              <span className="text-[#b7c9bc] whitespace-nowrap">تطابق</span>
+                              <span className="text-[#b7c9bc] whitespace-nowrap">
+                                {t.roads.earthworks.table.matchTag}
+                              </span>
                             )}
                           </td>
                           <td className="px-3 py-2 text-center">
@@ -618,7 +748,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                               type="button"
                               onClick={() => removeStation(st.id)}
                               disabled={stations.length <= 2}
-                              aria-label={`حذف المحطة ${idx + 1}`}
+                              aria-label={t.roads.earthworks.table.delAria(idx + 1)}
                               className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] text-[#b7c9bc] hover:bg-white/5 hover:text-[#f59e0b] disabled:opacity-30 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -633,9 +763,12 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
 
               {/* Earthworks Outputs */}
               {!earthworksResult.valid ? (
-                <div role="alert" className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]">
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]"
+                >
                   <AlertCircle className="h-4 w-4 shrink-0 text-[#f59e0b]" />
-                  <span>{earthworksResult.error}</span>
+                  <span>{localizedEarthworksError}</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -646,8 +779,8 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                   />
 
                   <CollapsibleSection
-                    title="المقاطع الهندسية (Profil en Long & Profil en Travers)"
-                    subtitle="معاينة المقطع الطولي والجانبي للحفر والردم"
+                    title={t.roads.earthworks.sectionsTitle}
+                    subtitle={t.roads.earthworks.sectionsSub}
                     icon={<Layers className="h-4 w-4 text-[#84cc16]" />}
                   >
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
@@ -655,15 +788,21 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                         <div className="lg:col-span-8 blueprint-cad-frame overflow-hidden border border-[#84cc16]/25 flex flex-col justify-between">
                           <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                              <span className="font-bold text-[#d9f99d]">المقطع الطولي (<bdi dir="ltr">Profil en Long</bdi>)</span>
+                              <span className="font-bold text-[#d9f99d]">
+                                {t.roads.earthworks.longProfileTitle} (<bdi dir="ltr">Profil en Long</bdi>)
+                              </span>
                               <div className="flex items-center gap-4 text-[11px] text-[#b7c9bc]">
                                 <span className="flex items-center gap-1.5">
                                   <span className="inline-block h-0.5 w-4 bg-[#f59e0b]" />
-                                  <span>الأرض (<bdi dir="ltr">TN</bdi>)</span>
+                                  <span>
+                                    {t.roads.earthworks.groundLegend} (<bdi dir="ltr">TN</bdi>)
+                                  </span>
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <span className="inline-block h-0.5 w-4 bg-[#84cc16]" />
-                                  <span>المشروع (<bdi dir="ltr">Projet</bdi>)</span>
+                                  <span>
+                                    {t.roads.earthworks.designLegend} (<bdi dir="ltr">Projet</bdi>)
+                                  </span>
                                 </span>
                               </div>
                             </div>
@@ -671,7 +810,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                               viewBox={`0 0 ${profileSvg.w} ${profileSvg.h}`}
                               className="w-full h-44 overflow-visible"
                               role="img"
-                              aria-label="رسم بياني للمقطع الطولي للطريق"
+                              aria-label={t.roads.earthworks.longProfileAria}
                             >
                               {[0.25, 0.5, 0.75].map((ratio) => (
                                 <line
@@ -704,10 +843,24 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                                 const cyDesign = profileSvg.toY(s.designElevM);
                                 return (
                                   <g key={s.id}>
-                                    <line x1={cx} x2={cx} y1={cyGround} y2={cyDesign} stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
+                                    <line
+                                      x1={cx}
+                                      x2={cx}
+                                      y1={cyGround}
+                                      y2={cyDesign}
+                                      stroke="rgba(255,255,255,0.22)"
+                                      strokeWidth="1"
+                                    />
                                     <circle cx={cx} cy={cyGround} r="4" fill="#f59e0b" />
                                     <circle cx={cx} cy={cyDesign} r="4.5" fill="#ea580c" />
-                                    <text x={cx} y={profileSvg.h - 4} textAnchor="middle" fill="#b7c9bc" fontSize="10" fontFamily="JetBrains Mono, monospace">
+                                    <text
+                                      x={cx}
+                                      y={profileSvg.h - 4}
+                                      textAnchor="middle"
+                                      fill="#b7c9bc"
+                                      fontSize="10"
+                                      fontFamily="JetBrains Mono, monospace"
+                                    >
                                       PK {s.chainageM}
                                     </text>
                                   </g>
@@ -720,7 +873,11 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
 
                       <div className="lg:col-span-4 space-y-2.5 flex flex-col justify-between">
                         <RoadCrossSectionDiagram
-                          roadWidthM={Number.isFinite(roadWidthM) && roadWidthM > 0 ? Number(roadWidthM.toFixed(2)) : 9}
+                          roadWidthM={
+                            Number.isFinite(roadWidthM) && roadWidthM > 0
+                              ? Number(roadWidthM.toFixed(2))
+                              : 9
+                          }
                           sideSlopeRatio={Number(sideSlopeStr) || 1.5}
                           sampleMode={crossSectionPreview}
                         />
@@ -734,7 +891,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                                 : 'border-white/[0.08] bg-[#070b09] text-[#b7c9bc] hover:text-[#f4f7f2]'
                             }`}
                           >
-                            مقطع ردم
+                            {t.roads.earthworks.fillSectionBtn}
                           </button>
                           <button
                             type="button"
@@ -745,7 +902,7 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
                                 : 'border-white/[0.08] bg-[#070b09] text-[#b7c9bc] hover:text-[#f4f7f2]'
                             }`}
                           >
-                            مقطع حفر
+                            {t.roads.earthworks.cutSectionBtn}
                           </button>
                         </div>
                       </div>
@@ -754,46 +911,72 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
 
                   {/* Segment-by-Segment Table with Strictly Isolated RTL/LTR and Single-Line Number+Unit */}
                   <CollapsibleSection
-                    title="تفاصيل كل مقطع (Segment-by-Segment)"
-                    subtitle="جدول الحجوم التفصيلية ونقاط الانقلاب بين المحطات"
-                    badge={`${earthworksResult.segments.length} مقاطع`}
+                    title={t.roads.earthworks.segmentsTitle}
+                    subtitle={t.roads.earthworks.segmentsSub}
+                    badge={t.roads.earthworks.segmentsBadge(earthworksResult.segments.length)}
                     icon={<Table2 className="h-4 w-4 text-[#f59e0b]" />}
                   >
                     <div className="overflow-x-auto rounded-[12px] border border-white/[0.08] bg-[#070b09]">
-                      <table className="w-full text-right text-xs">
+                      <table className="w-full text-start text-xs">
                         <thead className="bg-[#0b110d] text-[#b7c9bc] border-b border-white/[0.08]">
                           <tr>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[160px]">المقطع (<bdi dir="ltr">PK</bdi>)</th>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[100px]">الطول</th>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[110px]">ميل المشروع</th>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[120px]">حجم الحفر</th>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[120px]">حجم الردم</th>
-                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[170px]">ملاحظة ميدانية</th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[160px]">
+                              {t.roads.earthworks.segTable.segment} (<bdi dir="ltr">PK</bdi>)
+                            </th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[100px]">
+                              {t.roads.earthworks.segTable.length}
+                            </th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[110px]">
+                              {t.roads.earthworks.segTable.slope}
+                            </th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[120px]">
+                              {t.roads.earthworks.segTable.cutVol}
+                            </th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[120px]">
+                              {t.roads.earthworks.segTable.fillVol}
+                            </th>
+                            <th className="px-3.5 py-3 font-semibold whitespace-nowrap min-w-[170px]">
+                              {t.roads.earthworks.segTable.note}
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.06] bg-[#0f1612]/90">
                           {earthworksResult.segments.map((seg) => (
-                            <tr key={`${seg.fromChainageM}-${seg.toChainageM}`} className="hover:bg-white/[0.02] transition-colors">
+                            <tr
+                              key={`${seg.fromChainageM}-${seg.toChainageM}`}
+                              className="hover:bg-white/[0.02] transition-colors"
+                            >
                               <td className="px-3.5 py-3 font-mono-tabular text-[#f4f7f2] whitespace-nowrap" dir="ltr">
-                                <bdi dir="ltr">PK {seg.fromChainageM} → PK {seg.toChainageM}</bdi>
+                                <bdi dir="ltr">
+                                  PK {seg.fromChainageM} → PK {seg.toChainageM}
+                                </bdi>
                               </td>
                               <td className="px-3.5 py-3 font-mono-tabular text-[#b7c9bc] whitespace-nowrap">
-                                <span className="whitespace-nowrap"><bdi dir="ltr">{seg.lengthM}</bdi> م</span>
+                                <span className="whitespace-nowrap">
+                                  <bdi dir="ltr">{seg.lengthM}</bdi> {mSym}
+                                </span>
                               </td>
                               <td className="px-3.5 py-3 font-mono-tabular text-[#f4f7f2] whitespace-nowrap" dir="ltr">
                                 <bdi dir="ltr">{seg.designGradient.slopePercent}%</bdi>
                               </td>
                               <td className="px-3.5 py-3 font-mono-tabular text-[#f59e0b] whitespace-nowrap">
-                                <span className="whitespace-nowrap"><bdi dir="ltr">{seg.cutVolumeM3}</bdi> م³</span>
+                                <span className="whitespace-nowrap">
+                                  <bdi dir="ltr">{seg.cutVolumeM3}</bdi> {m3Sym}
+                                </span>
                               </td>
                               <td className="px-3.5 py-3 font-mono-tabular text-[#84cc16] whitespace-nowrap">
-                                <span className="whitespace-nowrap"><bdi dir="ltr">{seg.fillVolumeM3}</bdi> م³</span>
+                                <span className="whitespace-nowrap">
+                                  <bdi dir="ltr">{seg.fillVolumeM3}</bdi> {m3Sym}
+                                </span>
                               </td>
                               <td className="px-3.5 py-3 text-[#b7c9bc] whitespace-nowrap">
                                 {seg.hasTransitionPoint ? (
-                                  <span>نقطة انقلاب عند <bdi dir="ltr">PK {seg.transitionChainageM}</bdi></span>
+                                  <span>
+                                    {t.roads.earthworks.segTable.transitionAt}{' '}
+                                    <bdi dir="ltr">PK {seg.transitionChainageM}</bdi>
+                                  </span>
                                 ) : (
-                                  <span>{seg.designGradient.directionLabelAr}</span>
+                                  <span>{t.roads.gradient.directions[seg.designGradient.direction]}</span>
                                 )}
                               </td>
                             </tr>
@@ -811,3 +994,4 @@ export const RoadDesignCalculator: React.FC<RoadDesignCalculatorProps> = ({ onSa
     </div>
   );
 };
+

@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation, Info } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { GeoCoordinates, QuarryWithDistance } from '../utils/gps.locator';
-import { formatDistanceKm } from '../utils/gps.locator';
-import { ALGERIAN_WILAYAT } from '../data/wilayat';
+import { ALGERIAN_WILAYAT, findWilayaByCode } from '../data/wilayat';
+import { useI18n } from '../i18n/I18nContext';
+import { formatDistanceLocale, getQuarryCategoryLabel } from '../i18n/translations';
 
 interface AlgeriaOfflineSvgMapProps {
   quarries: QuarryWithDistance[];
@@ -60,6 +61,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
   selectedQuarryId,
   onSelectQuarry,
 }) => {
+  const { lang, t } = useI18n();
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hoveredQuarry, setHoveredQuarry] = useState<QuarryWithDistance | null>(null);
 
@@ -102,12 +104,19 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
     setZoomLevel(1);
   };
 
+  const hoveredWilayaObj = hoveredQuarry ? findWilayaByCode(hoveredQuarry.wilayaCode) : undefined;
+  const hoveredWilayaName = hoveredQuarry
+    ? lang === 'ar'
+      ? hoveredQuarry.wilayaName
+      : (hoveredWilayaObj?.frName ?? hoveredQuarry.wilayaName)
+    : '';
+
   return (
     <div className="relative h-[360px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden rounded-[14px] border border-[#84cc16]/30 bg-[#060a08] select-none">
       {/* Offline Status & Info Banner */}
-      <div className="pointer-events-none absolute top-3 right-3 z-10 flex items-center gap-2 rounded-[10px] border border-[#84cc16]/35 bg-[#0a110d]/95 px-3 py-1.5 text-[11px] font-bold text-[#84cc16] shadow-md backdrop-blur-md">
+      <div className="pointer-events-none absolute top-3 start-3 z-10 flex items-center gap-2 rounded-[10px] border border-[#84cc16]/35 bg-[#0a110d]/95 px-3 py-1.5 text-[11px] font-bold text-[#84cc16] shadow-md backdrop-blur-md">
         <span className="h-2 w-2 rounded-full bg-[#84cc16] animate-pulse" />
-        <span>خريطة المتجه المحلية (Vector SVG) · تعمل 100% بدون إنترنت</span>
+        <span>{t.quarries.mapModes.svgBanner}</span>
       </div>
 
       {/* Map Interactive Canvas */}
@@ -122,7 +131,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           className="h-full w-full max-h-full max-w-full"
           role="img"
-          aria-label="خريطة الجزائر المتجهية المحلية للمحاجر ومصانع الإسمنت"
+          aria-label={t.quarries.mapModes.svgAria}
         >
           <defs>
             {/* Grid Pattern */}
@@ -162,7 +171,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
             fontFamily="Tajawal, sans-serif"
             fontWeight="bold"
           >
-            البحر الأبيض المتوسط (الساحل الجزائري)
+            {t.quarries.mapModes.mediterranean}
           </text>
 
           {/* Algerian Landmass Polygon */}
@@ -180,7 +189,14 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
             const y = projectLatToY(lat);
             return (
               <g key={lat} opacity="0.3">
-                <line x1={PADDING + 20} y1={y} x2={SVG_W - PADDING - 20} y2={y} stroke="rgba(183, 201, 188, 0.12)" strokeDasharray="3 4" />
+                <line
+                  x1={PADDING + 20}
+                  y1={y}
+                  x2={SVG_W - PADDING - 20}
+                  y2={y}
+                  stroke="rgba(183, 201, 188, 0.12)"
+                  strokeDasharray="3 4"
+                />
                 <text x={SVG_W - PADDING - 15} y={y - 3} fill="#728879" fontSize="9" textAnchor="end" fontFamily="JetBrains Mono">
                   {lat}°N
                 </text>
@@ -189,7 +205,9 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
           })}
 
           {/* Major Wilaya Reference Dots & Labels */}
-          {ALGERIAN_WILAYAT.filter((w) => ['16', '31', '25', '19', '23', '06', '07', '17', '30', '11', '01', '08', '37', '33'].includes(w.code)).map((w) => {
+          {ALGERIAN_WILAYAT.filter((w) =>
+            ['16', '31', '25', '19', '23', '06', '07', '17', '30', '11', '01', '08', '37', '33'].includes(w.code)
+          ).map((w) => {
             const wx = projectLngToX(w.lng);
             const wy = projectLatToY(w.lat);
             return (
@@ -204,7 +222,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
                   fontWeight="600"
                   opacity="0.8"
                 >
-                  {w.arName}
+                  {lang === 'ar' ? w.arName : w.frName}
                 </text>
               </g>
             );
@@ -228,7 +246,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
                 <g transform={`translate(${(originCoord.x + selectedCoord.x) / 2}, ${(originCoord.y + selectedCoord.y) / 2})`}>
                   <rect x="-35" y="-12" width="70" height="20" rx="6" fill="#0b110d" stroke="#f59e0b" strokeWidth="1.2" />
                   <text x="0" y="2" textAnchor="middle" fill="#84cc16" fontSize="10" fontWeight="bold" fontFamily="JetBrains Mono">
-                    {formatDistanceKm(selectedQuarry.distanceKm)}
+                    {formatDistanceLocale(selectedQuarry.distanceKm, lang)}
                   </text>
                 </g>
               )}
@@ -277,7 +295,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
               <circle cx="0" cy="0" r="10" fill="none" stroke="#a3e635" strokeWidth="1.6" strokeDasharray="3 3" />
               <circle cx="0" cy="0" r="4.5" fill="#a3e635" stroke="#080c0a" strokeWidth="1.5" />
               <text x="0" y="-14" textAnchor="middle" fill="#d9f99d" fontSize="9.5" fontWeight="bold" fontFamily="Tajawal, sans-serif">
-                {origin.source === 'gps' ? 'موقعي (GPS)' : origin.label.split('-')[1]?.trim() || 'موقعي'}
+                {origin.source === 'gps' ? t.quarries.myLocationGps : origin.label.split('-')[1]?.trim() || t.quarries.myLocationShort}
               </text>
             </g>
           )}
@@ -295,12 +313,12 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
 
           {/* Scale Legend (~200 km) */}
           <g transform={`translate(35, ${SVG_H - 40})`} opacity="0.85">
-            <rect x="0" y="-14" width="130" height="26" rx="6" fill="#0b110d" stroke="rgba(255,255,255,0.08)" />
-            <line x1="12" y1="0" x2="118" y2="0" stroke="#84cc16" strokeWidth="2.5" />
+            <rect x="0" y="-14" width="150" height="26" rx="6" fill="#0b110d" stroke="rgba(255,255,255,0.08)" />
+            <line x1="12" y1="0" x2="138" y2="0" stroke="#84cc16" strokeWidth="2.5" />
             <line x1="12" y1="-4" x2="12" y2="4" stroke="#84cc16" strokeWidth="2.5" />
-            <line x1="118" y1="-4" x2="118" y2="4" stroke="#84cc16" strokeWidth="2.5" />
-            <text x="65" y="-5" textAnchor="middle" fill="#b7c9bc" fontSize="9" fontWeight="bold" fontFamily="Tajawal">
-              مقياس تقريبي ~ 200 كم
+            <line x1="138" y1="-4" x2="138" y2="4" stroke="#84cc16" strokeWidth="2.5" />
+            <text x="75" y="-5" textAnchor="middle" fill="#b7c9bc" fontSize="9" fontWeight="bold" fontFamily="Tajawal">
+              {t.quarries.mapModes.scaleLegend}
             </text>
           </g>
         </svg>
@@ -308,26 +326,26 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
 
       {/* Hover Info Tooltip */}
       {hoveredQuarry && (
-        <div className="pointer-events-none absolute bottom-14 left-4 z-20 rounded-[12px] border border-[#84cc16]/40 bg-[#0f1612]/95 p-3 text-xs text-[#f4f7f2] shadow-xl backdrop-blur-md space-y-1 min-w-[200px]">
+        <div className="pointer-events-none absolute bottom-14 end-4 z-20 rounded-[12px] border border-[#84cc16]/40 bg-[#0f1612]/95 p-3 text-xs text-[#f4f7f2] shadow-xl backdrop-blur-md space-y-1 min-w-[200px]">
           <div className="font-bold text-[#84cc16] truncate">{hoveredQuarry.name}</div>
           <div className="text-[11px] text-[#b7c9bc]">
-            {hoveredQuarry.wilayaCode} {hoveredQuarry.wilayaName} · {hoveredQuarry.categoryLabel}
+            {hoveredQuarry.wilayaCode} {hoveredWilayaName} · {getQuarryCategoryLabel(hoveredQuarry.category, lang)}
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-white/[0.08] pt-1 text-[11px]">
             <span className="text-[#f59e0b] font-mono-tabular font-bold">
-              {formatDistanceKm(hoveredQuarry.distanceKm)}
+              {formatDistanceLocale(hoveredQuarry.distanceKm, lang)}
             </span>
-            <span className="text-[#728879]">اضغط لعرض التفاصيل</span>
+            <span className="text-[#728879]">{t.quarries.mapModes.clickDetails}</span>
           </div>
         </div>
       )}
 
       {/* Zoom / Reset Controls */}
-      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 rounded-[12px] border border-white/[0.09] bg-[#0c130f]/90 p-1 backdrop-blur-md">
+      <div className="absolute top-3 end-3 z-10 flex flex-col gap-1.5 rounded-[12px] border border-white/[0.09] bg-[#0c130f]/90 p-1 backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleZoom(0.25)}
-          aria-label="تكبير الخريطة"
+          aria-label={t.quarries.mapModes.zoomIn}
           className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#b7c9bc] hover:bg-white/[0.08] hover:text-[#84cc16] transition-colors cursor-pointer"
         >
           <ZoomIn className="h-4 w-4" />
@@ -335,7 +353,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
         <button
           type="button"
           onClick={() => handleZoom(-0.25)}
-          aria-label="تصغير الخريطة"
+          aria-label={t.quarries.mapModes.zoomOut}
           className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#b7c9bc] hover:bg-white/[0.08] hover:text-[#84cc16] transition-colors cursor-pointer"
         >
           <ZoomOut className="h-4 w-4" />
@@ -343,7 +361,7 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
         <button
           type="button"
           onClick={resetView}
-          aria-label="إعادة ضبط الرؤية"
+          aria-label={t.quarries.mapModes.resetView}
           className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#b7c9bc] hover:bg-white/[0.08] hover:text-[#f59e0b] transition-colors cursor-pointer"
         >
           <RotateCcw className="h-3.5 w-3.5" />
@@ -351,20 +369,21 @@ export const AlgeriaOfflineSvgMap: React.FC<AlgeriaOfflineSvgMapProps> = ({
       </div>
 
       {/* Map Legend */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-wrap items-center gap-3 rounded-[10px] border border-white/[0.08] bg-[#0c130f]/95 px-3 py-1.5 text-[11px] text-[#b7c9bc] backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-3 start-3 z-10 flex flex-wrap items-center gap-3 rounded-[10px] border border-white/[0.08] bg-[#0c130f]/95 px-3 py-1.5 text-[11px] text-[#b7c9bc] backdrop-blur-md">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#84cc16]" />
-          <span>محجرة / مصنع</span>
+          <span>{t.quarries.mapModes.legendQuarry}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" />
-          <span>الموقع المحدد</span>
+          <span>{t.quarries.mapModes.legendSelected}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#a3e635] border border-dashed border-[#080c0a]" />
-          <span>موقعي</span>
+          <span>{t.quarries.mapModes.legendOrigin}</span>
         </span>
       </div>
     </div>
   );
 };
+

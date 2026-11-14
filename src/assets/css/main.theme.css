@@ -127,7 +127,7 @@ body.theme-day {
 .theme-day .console-panel,
 .theme-day .glass-surface {
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
 }
 
@@ -142,8 +142,8 @@ body.theme-day {
 .theme-day .console-well,
 .theme-day .glass-elevated {
   background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }
 
 /* Explicit input field border styling */
@@ -153,9 +153,81 @@ body.theme-day {
 }
 
 .theme-day .dz-input-control {
-  border-color: #cbd5e1 !important;
+  border-color: #94a3b8 !important;
   background-color: #ffffff !important;
   color: #0f172a !important;
+}
+
+/* High-contrast daylight overrides for components using dark-palette tokens */
+.theme-day [class*="bg-[#070b09]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *):not([role="status"].fixed),
+.theme-day [class*="bg-[#080c0a]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  background-color: #f8fafc !important;
+}
+
+.theme-day [class*="bg-[#0f1612]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="bg-[#0b110d]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="bg-[#111814]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="bg-[#141d18]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="bg-[#16211b]"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  background-color: #ffffff !important;
+}
+
+.theme-day [class*="border-white/"]:not([class*="theme-day:border-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  border-color: #cbd5e1 !important;
+}
+
+.theme-day [class*="divide-white/"]:not(.blueprint-cad-frame):not(.blueprint-cad-frame *) > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-day [class*="bg-white/"]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *):not(a):not(button) {
+  background-color: #e2e8f0 !important;
+}
+
+.theme-day [class*="text-[#f4f7f2]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *):not(.btn-kiwi):not(.btn-kiwi *):not([role="status"].fixed):not([role="status"].fixed *) {
+  color: #0f172a !important;
+}
+
+.theme-day [class*="text-[#d4e2d7]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="text-[#b7c9bc]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  color: #334155 !important;
+}
+
+.theme-day [class*="text-[#728879]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  color: #475569 !important;
+}
+
+.theme-day [class*="placeholder:text-[#728879]"]::placeholder {
+  color: #64748b !important;
+}
+
+.theme-day [class*="text-[#84cc16]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *):not([role="status"].fixed *),
+.theme-day [class*="text-[#a3e635]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="text-[#d9f99d]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  color: #3f6212 !important;
+}
+
+.theme-day [class*="text-[#f59e0b]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *),
+.theme-day [class*="text-[#fde68a]"]:not([class*="theme-day:text-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  color: #b45309 !important;
+}
+
+.theme-day .bg-\[\#84cc16\]:not([class*="theme-day:bg-"]):not(.blueprint-cad-frame):not(.blueprint-cad-frame *) {
+  background-color: #4d7c0f !important;
+  color: #ffffff !important;
+}
+
+.theme-day .bg-\[\#84cc16\] *,
+.theme-day .btn-kiwi * {
+  color: #ffffff !important;
+}
+
+.theme-day .leaflet-tile-pane {
+  filter: none !important;
+}
+
+.theme-day .leaflet-container {
+  background: #e2e8f0 !important;
 }
 
 /* Unified Telemetry Readout Bar with hairline precision cells */
@@ -169,8 +241,8 @@ body.theme-day {
 
 .theme-day .telemetry-strip {
   background: #f8fafc !important;
-  border-color: rgba(77, 124, 15, 0.35) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(77, 124, 15, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
 }
 
 .telemetry-cell {
@@ -282,16 +354,31 @@ a:focus-visible {
 
 .leaflet-popup-content {
   margin: 12px 14px !important;
-  padding-left: 20px !important;
+  padding-inline-end: 20px !important;
+  text-align: start;
+}
+
+html[dir='rtl'] .leaflet-popup-content {
   direction: rtl;
-  text-align: right;
+}
+
+html[dir='ltr'] .leaflet-popup-content {
+  direction: ltr;
 }
 
 .leaflet-popup-close-button {
   color: #b7c9bc !important;
+  top: 10px !important;
+}
+
+html[dir='rtl'] .leaflet-popup-close-button {
   left: 10px !important;
   right: auto !important;
-  top: 10px !important;
+}
+
+html[dir='ltr'] .leaflet-popup-close-button {
+  right: 10px !important;
+  left: auto !important;
 }
 
 .leaflet-popup-close-button:hover {
@@ -368,4 +455,15 @@ a:focus-visible {
     margin-bottom: 12px;
   }
 }
+
+/* Preserve copy & selection on result readouts and form inputs (mobile-friendly) */
+.telemetry-strip,
+.telemetry-cell,
+[data-copyable='true'],
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 

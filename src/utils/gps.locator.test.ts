@@ -8,6 +8,10 @@ import {
   formatDistanceKm,
   formatDurationAr,
   estimateHaulageMinutes,
+  saveCachedOriginCoords,
+  loadCachedOriginCoords,
+  GPS_ORIGIN_CACHE_TTL_MS,
+  type MinimalStorageLike,
 } from './gps.locator';
 
 test('All 58 Algerian Wilayas are present with unique codes 01..58', () => {
@@ -48,3 +52,34 @@ test('GPS helpers handle antipodal coordinates and non-finite inputs safely', ()
   assert.equal(formatDistanceKm(Number.NaN), '—');
   assert.equal(formatDurationAr(Number.NaN), '—');
 });
+
+test('Local coordinate cache stores, restores, and expires GPS entries safely', () => {
+  const mem = new Map<string, string>();
+  const mockStorage: MinimalStorageLike = {
+    getItem: (k) => mem.get(k) ?? null,
+    setItem: (k, v) => {
+      mem.set(k, v);
+    },
+  };
+
+  const t0 = 1_700_000_000_000;
+  const saved = saveCachedOriginCoords(
+    { lat: 36.7538, lng: 3.0588, accuracyMeters: 18, source: 'gps', label: 'موقعي الحالي (GPS)' },
+    mockStorage,
+    t0
+  );
+  assert.equal(saved, true);
+
+  const restoredFresh = loadCachedOriginCoords(mockStorage, t0 + 5 * 60 * 1000);
+  assert.ok(restoredFresh);
+  assert.equal(restoredFresh.lat, 36.7538);
+  assert.equal(restoredFresh.source, 'gps');
+
+  const expired = loadCachedOriginCoords(mockStorage, t0 + GPS_ORIGIN_CACHE_TTL_MS + 1000);
+  assert.equal(expired, null);
+
+  // Corrupt JSON safety check
+  mem.set('dz_civil_origin_cache_v1', '{bad_json');
+  assert.equal(loadCachedOriginCoords(mockStorage, t0), null);
+});
+

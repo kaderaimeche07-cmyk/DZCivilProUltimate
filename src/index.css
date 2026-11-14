@@ -3,3 +3,5 @@
 @import "./assets/css/main.theme.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant theme-day (&:where(.theme-day, .theme-day *));
+

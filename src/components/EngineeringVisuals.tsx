@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ConcreteDosage, ConcreteResult, RoadGradientResult } from '../utils/calculators.engine';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ConcreteCadDiagramProps {
   lengthLabel: string;
@@ -16,12 +17,14 @@ export const ConcreteCadDiagram: React.FC<ConcreteCadDiagramProps> = ({
   dosage,
   result,
 }) => {
+  const { t } = useI18n();
+
   return (
     <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
       <div className="topographic-scale" aria-hidden="true" />
       <div className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-[#d9f99d]">المخطط الهندسي للعنصر ونسب الخلطة</span>
+          <span className="font-bold text-[#d9f99d]">{t.concrete.cadTitle}</span>
           <span className="font-mono-tabular text-[#b7c9bc]" dir="ltr">
             CPJ 42.5 · {dosage} kg/m³
           </span>
@@ -31,7 +34,7 @@ export const ConcreteCadDiagram: React.FC<ConcreteCadDiagramProps> = ({
         viewBox="0 0 360 190"
         className="w-full h-44"
         role="img"
-        aria-label="رسم هندسي ثلاثي الأبعاد للعنصر الخرساني مع الأبعاد"
+        aria-label={t.concrete.cadAria}
       >
         <defs>
           <linearGradient id="kiwiTop" x1="0" y1="0" x2="1" y2="1">
@@ -105,14 +108,14 @@ export const ConcreteCadDiagram: React.FC<ConcreteCadDiagramProps> = ({
         {/* Proportional Mix Composition Bar */}
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-[11px] text-[#b7c9bc]">
-            <span>توزيع حجم المكونات التقريبي</span>
-            <span className="font-mono-tabular text-[#d9f99d]">رمل · حصى · إسمنت · ماء</span>
+            <span>{t.concrete.mixDistTitle}</span>
+            <span className="font-mono-tabular text-[#d9f99d]">{t.concrete.mixDistLegend}</span>
           </div>
           <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#070b09] border border-white/10">
-            <div className="bg-[#84cc16]" style={{ width: '48%' }} title="حصى مكسر" />
-            <div className="bg-[#f59e0b]" style={{ width: '27%' }} title="رمل 0/3" />
-            <div className="bg-[#d9f99d]" style={{ width: '15%' }} title="إسمنت CPJ" />
-            <div className="bg-[#38bdf8]" style={{ width: '10%' }} title="ماء الخلط" />
+            <div className="bg-[#84cc16]" style={{ width: '48%' }} title={t.concrete.mixTitles.gravel} />
+            <div className="bg-[#f59e0b]" style={{ width: '27%' }} title={t.concrete.mixTitles.sand} />
+            <div className="bg-[#d9f99d]" style={{ width: '15%' }} title={t.concrete.mixTitles.cement} />
+            <div className="bg-[#38bdf8]" style={{ width: '10%' }} title={t.concrete.mixTitles.water} />
           </div>
         </div>
       </div>
@@ -133,6 +136,7 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
   totalLengthM,
   commercialBars,
 }) => {
+  const { t } = useI18n();
   const safeDiameter = Number.isFinite(diameterMm) && diameterMm > 0 ? diameterMm : 12;
   const safeSection = Number.isFinite(crossSectionMm2) && crossSectionMm2 > 0 ? crossSectionMm2 : 0;
   const safeLength = Number.isFinite(totalLengthM) && totalLengthM > 0 ? totalLengthM : 0;
@@ -148,7 +152,7 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
       <div className="topographic-scale" aria-hidden="true" />
       <div className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-[#d9f99d]">المقطع العرضي وقص القضبان (12م)</span>
+          <span className="font-bold text-[#d9f99d]">{t.rebar.cadTitle}</span>
           <span className="font-mono-tabular text-[#f59e0b]" dir="ltr">
             Ø {safeDiameter} mm · A = {safeSection} mm²
           </span>
@@ -161,7 +165,7 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
             viewBox="0 0 150 140"
             className="h-32 w-36"
             role="img"
-            aria-label={`مقطع عرضي لقضيب حديد بقطر ${safeDiameter} ملم`}
+            aria-label={t.rebar.cadAria(safeDiameter)}
           >
             {/* Outer rib ring */}
             <circle
@@ -197,23 +201,25 @@ export const RebarCadDiagram: React.FC<RebarCadDiagramProps> = ({
         {/* 12m Bar Cut Plan Visual */}
         <div className="sm:col-span-7 space-y-2.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-[#a3b8a8]">مخطط التقطيع التجاري (طول القضيب 12م)</span>
-            <span className="font-mono-tabular font-bold text-[#a3e635]">{safeBars} قضيب</span>
+            <span className="text-[#a3b8a8]">{t.rebar.cutPlanTitle}</span>
+            <span className="font-mono-tabular font-bold text-[#a3e635]">
+              <bdi dir="ltr">{t.rebar.barsCountLabel(safeBars)}</bdi>
+            </span>
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] font-mono-tabular text-[#b7c9bc]">
-              <span>قضبان كاملة (12 م)</span>
-              <span className="text-[#84cc16]">{fullBars} × 12m</span>
+              <span>{t.rebar.fullBarsLabel}</span>
+              <span className="text-[#84cc16]" dir="ltr">{fullBars} × 12m</span>
             </div>
             <div className="h-3 w-full rounded-md bg-[#0f1612] border border-[#84cc16]/30 overflow-hidden flex">
               <div className="h-full bg-[#84cc16] transition-all duration-200" style={{ width: fullBars > 0 ? '100%' : '0%' }} />
             </div>
 
             <div className="flex items-center justify-between text-[11px] font-mono-tabular text-[#b7c9bc] pt-1">
-              <span>الجزء التكميلي من القضيب الأخير</span>
+              <span>{t.rebar.remainderLabel}</span>
               <span className="text-[#f59e0b]" dir="ltr">
-                {remainderM > 0 ? `${remainderM} m / 12 m` : 'بدون فائض (0 m)'}
+                {remainderM > 0 ? `${remainderM} m / 12 m` : t.rebar.noRemainder}
               </span>
             </div>
             <div className="h-3 w-full rounded-md bg-[#0f1612] border border-white/10 overflow-hidden flex">
@@ -242,6 +248,7 @@ export const MasonryCadDiagram: React.FC<MasonryCadDiagramProps> = ({
   grossAreaM2,
   brickLabel,
 }) => {
+  const { t } = useI18n();
   const safeOpenings = Number.isFinite(openingsM2) && openingsM2 > 0 ? openingsM2 : 0;
   const safeGross = Number.isFinite(grossAreaM2) && grossAreaM2 > 0 ? grossAreaM2 : 0;
   const openingRatio = safeGross > 0 ? Math.min(0.65, Math.max(0, safeOpenings / safeGross)) : 0;
@@ -255,7 +262,7 @@ export const MasonryCadDiagram: React.FC<MasonryCadDiagramProps> = ({
       <div className="topographic-scale" aria-hidden="true" />
       <div className="p-4 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-[#d9f99d]">الواجهة الهندسية للجدار والفتحات</span>
+          <span className="font-bold text-[#d9f99d]">{t.masonry.cadTitle}</span>
           <span className="text-[#b7c9bc]">{brickLabel}</span>
         </div>
 
@@ -263,7 +270,7 @@ export const MasonryCadDiagram: React.FC<MasonryCadDiagramProps> = ({
         viewBox="0 0 340 165"
         className="w-full h-40"
         role="img"
-        aria-label="رسم هندسي لواجهة الجدار مع الفتحات والأبعاد"
+        aria-label={t.masonry.cadAria}
       >
         {/* Main Masonry Wall */}
         <rect
@@ -334,6 +341,7 @@ interface RoadSlopeCadDiagramProps {
 }
 
 export const RoadSlopeCadDiagram: React.FC<RoadSlopeCadDiagramProps> = ({ result }) => {
+  const { t } = useI18n();
   if (!result.valid || !Number.isFinite(result.slopeAngleDeg) || !Number.isFinite(result.absSlopePercent)) {
     return null;
   }
@@ -348,7 +356,7 @@ export const RoadSlopeCadDiagram: React.FC<RoadSlopeCadDiagramProps> = ({ result
       <div className="topographic-scale" aria-hidden="true" />
       <div className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-[#d9f99d]">مثلث الانحدار الهندسي ومقياس B40</span>
+          <span className="font-bold text-[#d9f99d]">{t.roads.gradient.cadTitle}</span>
           <span className="font-mono-tabular text-[#84cc16]" dir="ltr">
             {result.slopePercent}% ({result.slopeRatioText})
           </span>
@@ -358,7 +366,7 @@ export const RoadSlopeCadDiagram: React.FC<RoadSlopeCadDiagramProps> = ({ result
         viewBox="0 0 360 142"
         className="w-full h-36"
         role="img"
-        aria-label="مثلث الميول الطولية للطريق بين نقطة البداية والنهاية"
+        aria-label={t.roads.gradient.cadAria}
       >
         {/* Horizontal Datum */}
         <line x1="40" y1="115" x2="275" y2="115" stroke="#6b7f70" strokeWidth="1.5" strokeDasharray="4 3" />
@@ -436,13 +444,14 @@ export const RoadCrossSectionDiagram: React.FC<RoadCrossSectionDiagramProps> = (
   sideSlopeRatio,
   sampleMode,
 }) => {
+  const { t } = useI18n();
   const isCut = sampleMode === 'cut';
   return (
     <div className="blueprint-cad-frame overflow-hidden border border-[#84cc16]/25">
       <div className="topographic-scale" aria-hidden="true" />
       <div className="p-4 space-y-2">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-[#d9f99d]">المقطع العرضي النموذجي (Profil en Travers)</span>
+          <span className="font-bold text-[#d9f99d]">{t.roads.earthworks.crossSectionTitle}</span>
           <span className="font-mono-tabular text-[#b7c9bc]" dir="ltr">
             L={roadWidthM}m · Talus {sideSlopeRatio}:1
           </span>
@@ -452,7 +461,7 @@ export const RoadCrossSectionDiagram: React.FC<RoadCrossSectionDiagramProps> = (
         viewBox="0 0 340 120"
         className="w-full h-28"
         role="img"
-        aria-label="المقطع العرضي شبه المنحرف لقارعة الطريق والأكتاف الجانبية"
+        aria-label={t.roads.earthworks.crossSectionAria}
       >
         {isCut ? (
           <>

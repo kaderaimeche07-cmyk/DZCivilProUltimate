@@ -7,16 +7,19 @@ import {
   type UnitCategory,
 } from '../utils/units';
 import { copyTextSafely } from '../utils/security';
+import { useI18n } from '../i18n/I18nContext';
+import { getUnitDisplay } from '../i18n/translations';
 
-const CATEGORIES: { id: UnitCategory; label: string; defaultFrom: string; defaultVal: string }[] = [
-  { id: 'length', label: 'الأطوال والمسافات', defaultFrom: 'cm', defaultVal: '250' },
-  { id: 'area', label: 'المساحات والأراضي', defaultFrom: 'm2', defaultVal: '120' },
-  { id: 'volume', label: 'الأحجام والخرسانة', defaultFrom: 'm3', defaultVal: '12' },
-  { id: 'mass', label: 'الأوزان (كغ / قنطار / طن)', defaultFrom: 't', defaultVal: '2.5' },
-  { id: 'stress', label: 'الضغط والمقاومة (MPa)', defaultFrom: 'MPa', defaultVal: '25' },
+const CATEGORY_SPECS: { id: UnitCategory; defaultFrom: string; defaultVal: string }[] = [
+  { id: 'length', defaultFrom: 'cm', defaultVal: '250' },
+  { id: 'area', defaultFrom: 'm2', defaultVal: '120' },
+  { id: 'volume', defaultFrom: 'm3', defaultVal: '12' },
+  { id: 'mass', defaultFrom: 't', defaultVal: '2.5' },
+  { id: 'stress', defaultFrom: 'MPa', defaultVal: '25' },
 ];
 
 export const UnitConverterPanel: React.FC = () => {
+  const { lang, t } = useI18n();
   const [category, setCategory] = useState<UnitCategory>('length');
   const [fromUnit, setFromUnit] = useState<string>('cm');
   const [valueStr, setValueStr] = useState<string>('250');
@@ -35,7 +38,7 @@ export const UnitConverterPanel: React.FC = () => {
   const unitList = useMemo(() => Object.values(unitMap), [unitMap]);
 
   const handleCategoryChange = (nextCat: UnitCategory) => {
-    const spec = CATEGORIES.find((c) => c.id === nextCat) ?? CATEGORIES[0];
+    const spec = CATEGORY_SPECS.find((c) => c.id === nextCat) ?? CATEGORY_SPECS[0];
     setCategory(nextCat);
     setFromUnit(spec.defaultFrom);
     setValueStr(spec.defaultVal);
@@ -47,12 +50,15 @@ export const UnitConverterPanel: React.FC = () => {
       const converted = Number.isFinite(numericValue)
         ? convertUnitValue(category, numericValue, fromUnit, u.id)
         : NaN;
+      const disp = getUnitDisplay(lang, u.id);
       return {
         ...u,
+        displayName: disp.name,
+        displaySymbol: disp.symbol,
         formatted: formatEngineeringNumber(converted, 5),
       };
     });
-  }, [unitList, numericValue, category, fromUnit]);
+  }, [unitList, numericValue, category, fromUnit, lang]);
 
   const handleCopy = async (id: string, text: string) => {
     const ok = await copyTextSafely(text);
@@ -74,18 +80,18 @@ export const UnitConverterPanel: React.FC = () => {
             </span>
             <div>
               <h2 id="unit-conv-heading" className="text-lg font-bold text-[#f4f7f2]">
-                محول الوحدات الهندسية الشامل
+                {t.converter.heading}
               </h2>
               <p className="text-xs text-[#b7c9bc]">
-                تحويل فوري بين المتر والسنتيمتر والمليمتر، الهكتار، القنطار، ومقاومة الخرسانة <bdi dir="ltr">fc28</bdi>
+                {t.converter.subtitlePrefix} <bdi dir="ltr">fc28</bdi>
               </p>
             </div>
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="فئة الوحدات الهندسية">
-          {CATEGORIES.map((c) => {
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label={t.converter.tablistAria}>
+          {CATEGORY_SPECS.map((c) => {
             const active = category === c.id;
             return (
               <button
@@ -101,9 +107,9 @@ export const UnitConverterPanel: React.FC = () => {
                 }`}
               >
                 {c.id === 'stress' ? (
-                  <span>الضغط والمقاومة (<bdi dir="ltr">MPa</bdi>)</span>
+                  <span>{t.converter.categories.stress} (<bdi dir="ltr">MPa</bdi>)</span>
                 ) : (
-                  <span>{c.label}</span>
+                  <span>{t.converter.categories[c.id]}</span>
                 )}
               </button>
             );
@@ -114,7 +120,7 @@ export const UnitConverterPanel: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
           <div className="sm:col-span-6">
             <label htmlFor="unit-conv-val" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-              القيمة المراد تحويلها
+              {t.converter.valueLabel}
             </label>
             <input
               id="unit-conv-val"
@@ -127,7 +133,7 @@ export const UnitConverterPanel: React.FC = () => {
           </div>
           <div className="sm:col-span-6">
             <label htmlFor="unit-conv-from" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-              من وحدة القياس
+              {t.converter.fromUnitLabel}
             </label>
             <select
               id="unit-conv-from"
@@ -135,11 +141,14 @@ export const UnitConverterPanel: React.FC = () => {
               onChange={(e) => setFromUnit(e.target.value)}
               className="w-full min-h-[46px] rounded-[14px] border border-white/[0.09] bg-[#070b09] px-4 py-2 text-sm font-bold text-[#f59e0b] outline-none transition-colors duration-200 focus:border-[#84cc16]"
             >
-              {unitList.map((u) => (
-                <option key={u.id} value={u.id} className="bg-[#0f1612] text-[#f4f7f2]">
-                  {u.arName} ({u.symbol})
-                </option>
-              ))}
+              {unitList.map((u) => {
+                const disp = getUnitDisplay(lang, u.id);
+                return (
+                  <option key={u.id} value={u.id} className="bg-[#0f1612] text-[#f4f7f2]">
+                    {disp.name} ({disp.symbol})
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -161,7 +170,7 @@ export const UnitConverterPanel: React.FC = () => {
                   }`}
                 >
                   <div className="min-w-0 space-y-1">
-                    <div className="text-[11px] font-medium text-[#b7c9bc]">{item.arName}</div>
+                    <div className="text-[11px] font-medium text-[#b7c9bc]">{item.displayName}</div>
                     <div
                       className={`font-mono-tabular text-base sm:text-lg font-extrabold truncate ${
                         isSource ? 'text-[#84cc16]' : 'text-[#f4f7f2]'
@@ -170,13 +179,13 @@ export const UnitConverterPanel: React.FC = () => {
                     >
                       <bdi dir="ltr">{item.formatted}</bdi>
                     </div>
-                    <div className="text-[11px] font-semibold text-[#f59e0b]"><bdi dir="ltr">{item.symbol}</bdi></div>
+                    <div className="text-[11px] font-semibold text-[#f59e0b]"><bdi dir="ltr">{item.displaySymbol}</bdi></div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleCopy(item.id, item.formatted)}
-                    aria-label={`نسخ القيمة بوحدة ${item.arName}`}
-                    className="inline-flex h-11 w-11 -mt-1.5 -ml-1.5 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-[#0f1612] text-[#728879] hover:border-[#84cc16]/50 hover:text-[#a3e635] active:scale-95 transition-all duration-200 cursor-pointer"
+                    aria-label={t.converter.copyUnitAria(item.displayName)}
+                    className="inline-flex h-11 w-11 -mt-1.5 -ms-1.5 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-[#0f1612] text-[#728879] hover:border-[#84cc16]/50 hover:text-[#a3e635] active:scale-95 transition-all duration-200 cursor-pointer"
                   >
                     {copiedId === item.id ? (
                       <Check className="h-4 w-4 text-[#84cc16]" />

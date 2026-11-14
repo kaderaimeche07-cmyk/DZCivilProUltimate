@@ -170,3 +170,96 @@ export function requestCurrentGpsPosition(timeoutMs = 12000): Promise<GpsResult 
     );
   });
 }
+
+export const ORIGIN_CACHE_STORAGE_KEY = 'dz_civil_origin_cache_v1';
+export const GPS_ORIGIN_CACHE_TTL_MS = 30 * 60 * 1000;
+
+export interface MinimalStorageLike {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem?: (key: string) => void;
+}
+
+interface CachedOriginRecord {
+  coords: GeoCoordinates;
+  cachedAtMs: number;
+}
+
+function getSafeStorage(storage?: MinimalStorageLike | null): MinimalStorageLike | null {
+  if (storage) return storage;
+  if (typeof localStorage !== 'undefined') return localStorage;
+  return null;
+}
+
+export function saveCachedOriginCoords(
+  coords: GeoCoordinates,
+  storage?: MinimalStorageLike | null,
+  nowMs = Date.now()
+): boolean {
+  const store = getSafeStorage(storage);
+  if (!store) return false;
+  if (!Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return false;
+
+  try {
+    const record: CachedOriginRecord = {
+      coords: {
+        lat: Number(coords.lat.toFixed(6)),
+        lng: Number(coords.lng.toFixed(6)),
+        accuracyMeters: coords.accuracyMeters,
+        source: coords.source,
+        label: String(coords.label || '').slice(0, 120),
+      },
+      cachedAtMs: nowMs,
+    };
+    store.setItem(ORIGIN_CACHE_STORAGE_KEY, JSON.stringify(record));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function loadCachedOriginCoords(
+  storage?: MinimalStorageLike | null,
+  nowMs = Date.now(),
+  gpsTtlMs = GPS_ORIGIN_CACHE_TTL_MS
+): GeoCoordinates | null {
+  const store = getSafeStorage(storage);
+  if (!store) return null;
+
+  try {
+    const raw = store.getItem(ORIGIN_CACHE_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<CachedOriginRecord>;
+    if (!parsed?.coords || typeof parsed.cachedAtMs !== 'number') return null;
+
+    const { lat, lng, source, label, accuracyMeters } = parsed.coords;
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180 ||
+      (source !== 'gps' && source !== 'wilaya') ||
+      typeof label !== 'string'
+    ) {
+      return null;
+    }
+
+    if (source === 'gps' && nowMs - parsed.cachedAtMs > gpsTtlMs) {
+      return null;
+    }
+
+    return {
+      lat,
+      lng,
+      source,
+      label,
+      accuracyMeters: typeof accuracyMeters === 'number' && Number.isFinite(accuracyMeters) ? accuracyMeters : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+

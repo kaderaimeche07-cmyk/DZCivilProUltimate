@@ -26,7 +26,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full min-h-[52px] items-center justify-between gap-3 px-4 py-3 text-right hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer"
+        className="flex w-full min-h-[52px] items-center justify-between gap-3 px-4 py-3 text-start hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer"
       >
         <div className="flex items-center gap-3 min-w-0">
           {icon && (

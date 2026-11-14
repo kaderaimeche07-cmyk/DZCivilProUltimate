@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { copyTextSafely } from '../utils/security';
+import { useI18n } from '../i18n/I18nContext';
 
 export interface TelemetryMetricItem {
   id: string;
@@ -25,6 +26,7 @@ export const TelemetryReadoutStrip: React.FC<TelemetryReadoutStripProps> = ({
   items,
   columnsClassName = 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6',
 }) => {
+  const { t } = useI18n();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -72,9 +74,9 @@ export const TelemetryReadoutStrip: React.FC<TelemetryReadoutStripProps> = ({
                 <button
                   type="button"
                   onClick={() => handleCopy(item)}
-                  aria-label={`نسخ ${item.label}`}
-                  title={`نسخ ${item.label}`}
-                  className="inline-flex h-11 w-11 -mt-1.5 -ml-1.5 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-[#0f1612] text-[#728879] hover:border-[#84cc16]/50 hover:text-[#a3e635] active:scale-95 transition-all duration-200 cursor-pointer"
+                  aria-label={t.common.copyValueAria(item.label)}
+                  title={t.common.copyValueAria(item.label)}
+                  className="inline-flex h-11 w-11 -mt-1.5 -ms-1.5 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-[#0f1612] text-[#728879] hover:border-[#84cc16]/50 hover:text-[#a3e635] active:scale-95 transition-all duration-200 cursor-pointer"
                 >
                   {isCopied ? (
                     <Check className="h-4 w-4 text-[#84cc16]" />

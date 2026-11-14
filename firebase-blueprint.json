@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "VisitorStats": {
+      "title": "VisitorStats",
+      "description": "Write-only aggregate counter tracking unique devices visiting the application.",
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "Cumulative count of unique devices."
+        }
+      },
+      "required": ["count"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private engineering user profile scoped strictly to the authenticated Firebase UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth user UID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254,
+          "description": "Authenticated Google account email."
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "User display name."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest profile sync."
+        }
+      },
+      "required": ["uid", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/app_stats/visitors": {
+      "schema": {
+        "$ref": "#/entities/VisitorStats"
+      },
+      "description": "Singleton counter document allowing write-only +1 increments of the count field."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Owner-only user metadata document."
+    }
+  }
+}

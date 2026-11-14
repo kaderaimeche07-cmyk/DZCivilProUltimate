@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 
 interface BottomSheetProps {
   open: boolean;
@@ -18,6 +19,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
   footer,
 }) => {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,7 +60,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           <button
             type="button"
             onClick={onClose}
-            aria-label="إغلاق اللوحة"
+            aria-label={t.common.closePanel}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-[#070b09] text-[#b7c9bc] hover:border-[#84cc16]/50 hover:text-[#f4f7f2] transition-colors duration-200 cursor-pointer"
           >
             <X className="h-4 w-4" />

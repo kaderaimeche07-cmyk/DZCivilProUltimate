@@ -7,6 +7,8 @@ import {
   type LengthUnit,
   type UnitSpec,
 } from '../utils/units';
+import { useI18n } from '../i18n/I18nContext';
+import { getUnitDisplay } from '../i18n/translations';
 
 interface UnitInputFieldProps {
   id: string;
@@ -33,6 +35,7 @@ export const UnitInputField: React.FC<UnitInputFieldProps> = ({
   focusAccent = 'kiwi',
   showMetricHint = true,
 }) => {
+  const { lang, t } = useI18n();
   const unitSpec = LENGTH_UNITS[unit];
   const numericVal = Number(valueStr);
   const metersVal = Number.isFinite(numericVal) ? toMeters(numericVal, unit) : NaN;
@@ -78,7 +81,7 @@ export const UnitInputField: React.FC<UnitInputFieldProps> = ({
           className="font-mono-tabular w-full min-w-0 bg-transparent px-3.5 py-2.5 text-sm font-semibold text-[#f4f7f2] outline-none"
         />
         <label htmlFor={`${id}-unit`} className="sr-only">
-          وحدة قياس {label}
+          {t.common.unitOf(label)}
         </label>
         <select
           id={`${id}-unit`}
@@ -88,7 +91,7 @@ export const UnitInputField: React.FC<UnitInputFieldProps> = ({
         >
           {units.map((u) => (
             <option key={u.id} value={u.id} className="bg-[#0f1612] text-[#f4f7f2]">
-              {u.symbol}
+              {getUnitDisplay(lang, u.id).symbol}
             </option>
           ))}
         </select>

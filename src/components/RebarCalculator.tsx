@@ -5,7 +5,6 @@ import {
   REBAR_UNIT_WEIGHTS_KG_M,
   calculateRebarWeight,
   calculateRebarCostDzd,
-  formatDzd,
   type RebarDiameterMm,
 } from '../utils/calculators.engine';
 import {
@@ -21,24 +20,45 @@ import { TelemetryReadoutStrip, type TelemetryMetricItem } from './TelemetryRead
 import { LiveResultBanner } from './LiveResultBanner';
 import { CollapsibleSection } from './CollapsibleSection';
 import type { SavedBoqItem } from '../types/boq';
+import { useI18n } from '../i18n/I18nContext';
+import {
+  TRANSLATIONS,
+  formatCurrencyLocale,
+  getInitialLang,
+  getUnitDisplay,
+} from '../i18n/translations';
 
 interface RebarCalculatorProps {
   onSaveToBoq: (item: SavedBoqItem) => void;
 }
 
+const DEFAULT_REBAR_NAMES = new Set<string>([
+  TRANSLATIONS.ar.rebar.defaultElementName,
+  TRANSLATIONS.fr.rebar.defaultElementName,
+  TRANSLATIONS.en.rebar.defaultElementName,
+]);
+
 const REBAR_STATE_KEY = 'dz_civil_calc_rebar_state';
 
 export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq }) => {
+  const { lang, t } = useI18n();
+
   const [elementName, setElementName] = useState(() => {
     try {
       const saved = localStorage.getItem(REBAR_STATE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (typeof parsed.elementName === 'string') return parsed.elementName;
+        if (typeof parsed.elementName === 'string' && !DEFAULT_REBAR_NAMES.has(parsed.elementName)) {
+          return parsed.elementName;
+        }
       }
     } catch {}
-    return 'تسليح الأعمدة والكمرات';
+    return TRANSLATIONS[getInitialLang()].rebar.defaultElementName;
   });
+
+  React.useEffect(() => {
+    setElementName((prev: string) => (DEFAULT_REBAR_NAMES.has(prev) ? t.rebar.defaultElementName : prev));
+  }, [t.rebar.defaultElementName]);
 
   const [diameter, setDiameter] = useState<RebarDiameterMm>(() => {
     try {
@@ -93,10 +113,10 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
   const engineeringWarnings = useMemo(() => {
     const msgs: string[] = [];
     if (diameter < 10) {
-      msgs.push('تنبيه هندسي (RPA 2024): أقطار T6 و T8 مخصصة للأساور (Cadres/Épingles) ولا تُستخدم كتسليح طولي رئيسي للأعمدة.');
+      msgs.push(t.rebar.warnSmallDiameter);
     }
     return msgs;
-  }, [diameter]);
+  }, [diameter, t.rebar.warnSmallDiameter]);
 
   const computedTotalLengthM = useMemo(() => {
     if (inputMode === 'total') return toMeters(Number(totalLengthStr), totalLengthUnit);
@@ -119,7 +139,11 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
     return calculateRebarCostDzd(result.grossWeightKg, Number.isFinite(parsedPrice) ? parsedPrice : 0);
   }, [result.grossWeightKg, tonnePriceStr]);
 
-  const massSymbol = massDisplayUnit === 'kg' ? 'كغ' : massDisplayUnit === 'q' ? 'قنطار' : 'طن';
+  const massSymbol = getUnitDisplay(lang, massDisplayUnit).symbol;
+  const kgSymbol = getUnitDisplay(lang, 'kg').symbol;
+  const tonneSymbol = getUnitDisplay(lang, 't').symbol;
+  const mmSymbol = getUnitDisplay(lang, 'mm').symbol;
+  const mm2Unit = `${mmSymbol}²`;
   const displayedNetWeight = formatEngineeringNumber(fromKilograms(result.netWeightKg, massDisplayUnit), 3);
   const displayedGrossWeight = formatEngineeringNumber(fromKilograms(result.grossWeightKg, massDisplayUnit), 3);
 
@@ -127,36 +151,36 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
     () => [
       {
         id: 'rebar-unit',
-        label: 'الوزن الخطي / المقطع',
+        label: t.rebar.metrics.unitWeight,
         value: result.unitWeightKgPerM,
-        unit: 'كغ/م',
-        subtext: `${result.crossSectionMm2} مم²`,
+        unit: t.rebar.metrics.unitWeightUnit,
+        subtext: `${result.crossSectionMm2} ${mm2Unit}`,
         accent: 'neutral',
       },
       {
         id: 'rebar-net',
-        label: 'الوزن الصافي',
+        label: t.rebar.metrics.netWeight,
         value: displayedNetWeight,
         unit: massSymbol,
         accent: 'neutral',
       },
       {
         id: 'rebar-gross',
-        label: 'الوزن الإجمالي مع الهدر',
+        label: t.rebar.metrics.grossWeight,
         value: displayedGrossWeight,
         unit: massSymbol,
-        subtext: `${result.grossWeightTonnes} طن`,
+        subtext: `${result.grossWeightTonnes} ${tonneSymbol}`,
         accent: 'amber',
       },
       {
         id: 'rebar-bars',
-        label: 'قضبان تجارية (طول 12م)',
+        label: t.rebar.metrics.commercialBars,
         value: result.commercial12mBars,
-        unit: 'قضيب',
+        unit: t.rebar.metrics.barUnit,
         accent: 'kiwi',
       },
     ],
-    [result, displayedNetWeight, displayedGrossWeight, massSymbol]
+    [result, displayedNetWeight, displayedGrossWeight, massSymbol, tonneSymbol, mm2Unit, t]
   );
 
   const handleSave = () => {
@@ -164,13 +188,13 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
     onSaveToBoq({
       id: `rebar-${Date.now()}`,
       category: 'rebar',
-      categoryLabel: 'حديد التسليح',
-      title: `${elementName.trim() || 'حديد تسليح'} (T${diameter})`,
-      summary: `الطول الإجمالي ${computedTotalLengthM.toFixed(2)} م · هدر ${wasteStr}%`,
+      categoryLabel: t.rebar.boqCategory,
+      title: `${elementName.trim() || t.rebar.defaultElementName} (T${diameter})`,
+      summary: t.rebar.boqSummary(computedTotalLengthM.toFixed(2), wasteStr),
       metrics: [
-        { label: 'الوزن الإجمالي', value: `${result.grossWeightKg} كغ (${result.grossWeightTonnes} طن)` },
-        { label: 'الوزن الصافي', value: `${result.netWeightKg} كغ` },
-        { label: 'القضبان التجارية (12م)', value: `${result.commercial12mBars} قضيب` },
+        { label: t.rebar.boqMetrics.gross, value: `${result.grossWeightKg} ${kgSymbol} (${result.grossWeightTonnes} ${tonneSymbol})` },
+        { label: t.rebar.boqMetrics.net, value: `${result.netWeightKg} ${kgSymbol}` },
+        { label: t.rebar.boqMetrics.bars, value: `${result.commercial12mBars} ${t.rebar.metrics.barUnit}` },
       ],
       estimatedCostDzd,
       createdAtIso: new Date().toISOString(),
@@ -181,13 +205,13 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
     <div className="space-y-4">
       {result.valid && (
         <LiveResultBanner
-          label={`النتيجة الفورية · T${diameter}`}
+          label={t.rebar.liveLabel(diameter)}
           primaryValue={`${displayedGrossWeight} ${massSymbol}`}
-          secondaryDetail={`${result.commercial12mBars} قضيب (12م)`}
-          costText={formatDzd(estimatedCostDzd)}
-          copyCostLabel="نسخ تكلفة الحديد"
+          secondaryDetail={t.rebar.liveSecondary(result.commercial12mBars)}
+          costText={formatCurrencyLocale(estimatedCostDzd, lang)}
+          copyCostLabel={t.rebar.copyCostLabel}
           onSave={handleSave}
-          saveLabel="+ حفظ في المقايسة"
+          saveLabel={t.common.saveToBoq}
         />
       )}
 
@@ -201,10 +225,10 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
               </span>
               <div>
                 <h2 id="rebar-calc-heading" className="text-lg font-bold text-[#f4f7f2]">
-                  حاسبة حديد التسليح (<bdi dir="ltr">HA FeE400/500</bdi>)
+                  {t.rebar.heading}
                 </h2>
                 <p className="text-xs text-[#b7c9bc]">
-                  إدخال الأطوال بأي وحدة مع حساب الوزن والقضبان التجارية (<bdi dir="ltr">12m</bdi>)
+                  {t.rebar.subtitlePrefix} (<bdi dir="ltr">12m</bdi>)
                 </p>
               </div>
             </div>
@@ -217,7 +241,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                   inputMode === 'total' ? 'bg-[#84cc16] text-[#060a05]' : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
                 }`}
               >
-                الطول الإجمالي
+                {t.rebar.modeTotal}
               </button>
               <button
                 type="button"
@@ -226,7 +250,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                   inputMode === 'bars' ? 'bg-[#84cc16] text-[#060a05]' : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
                 }`}
               >
-                عدد × طول القضيب
+                {t.rebar.modeBars}
               </button>
             </div>
           </div>
@@ -236,9 +260,9 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
               {/* Diameter Selector */}
               <div>
                 <span className="mb-2 block text-xs font-semibold text-[#b7c9bc]">
-                  قطر الحديد (<bdi dir="ltr">T / Ø</bdi> مم)
+                  {t.rebar.diameterLabel} (<bdi dir="ltr">T / Ø {mmSymbol}</bdi>)
                 </span>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2" role="radiogroup" aria-label="اختر قطر حديد التسليح">
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2" role="radiogroup" aria-label={t.rebar.diameterAria}>
                   {REBAR_DIAMETERS.map((d) => {
                     const active = diameter === d;
                     return (
@@ -282,7 +306,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                   <>
                     <UnitInputField
                       id="rebar-total-len"
-                      label="الطول الإجمالي للقضبان"
+                      label={t.rebar.totalLengthLabel}
                       valueStr={totalLengthStr}
                       onValueChange={setTotalLengthStr}
                       unit={totalLengthUnit}
@@ -290,7 +314,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                     />
                     <div>
                       <label htmlFor="rebar-quick-waste" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                        نسبة الهدر والتوصيل (%)
+                        {t.rebar.wasteQuickLabel}
                       </label>
                       <input
                         id="rebar-quick-waste"
@@ -307,7 +331,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                   <>
                     <div>
                       <label htmlFor="rebar-count" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                        عدد القضبان
+                        {t.rebar.barCountLabel}
                       </label>
                       <input
                         id="rebar-count"
@@ -321,7 +345,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                     </div>
                     <UnitInputField
                       id="rebar-bar-len"
-                      label="طول القضيب الواحد"
+                      label={t.rebar.barLengthLabel}
                       valueStr={barLengthStr}
                       onValueChange={setBarLengthStr}
                       unit={barLengthUnit}
@@ -333,15 +357,15 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
 
               {/* Progressive Disclosure: Advanced Options */}
               <CollapsibleSection
-                title="خيارات متقدمة"
-                subtitle="تسمية العنصر، نسبة التوصيل والهدر، وسعر الطن (دج)"
-                badge={`هدر ${wasteStr}%`}
+                title={t.common.advancedOptions}
+                subtitle={t.rebar.advSubtitle}
+                badge={t.common.wasteBadge(wasteStr)}
                 icon={<SlidersHorizontal className="h-4 w-4" />}
               >
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div className="sm:col-span-3">
                     <label htmlFor="rebar-name" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                      العنصر الإنشائي
+                      {t.rebar.elementNameLabel}
                     </label>
                     <input
                       id="rebar-name"
@@ -354,7 +378,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
 
                   <div>
                     <label htmlFor="rebar-waste" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                      الهدر والتوصيل (%)
+                      {t.rebar.wasteLapLabel}
                     </label>
                     <input
                       id="rebar-waste"
@@ -370,7 +394,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
 
                   <div className="sm:col-span-2">
                     <label htmlFor="rebar-tonne-price" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                      سعر الطن المرجعي (دج/طن)
+                      {t.rebar.tonnePriceLabel}
                     </label>
                     <input
                       id="rebar-tonne-price"
@@ -397,8 +421,8 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
               </div>
               <div className="lg:hidden">
                 <CollapsibleSection
-                  title="مقطع التقطيع الهندسي (CAD)"
-                  subtitle="معاينة المقطع العرضي والقضبان التجارية"
+                  title={t.rebar.cadMobileTitle}
+                  subtitle={t.rebar.cadMobileSub}
                   icon={<Layers className="h-4 w-4 text-[#84cc16]" />}
                 >
                   <RebarCadDiagram
@@ -415,12 +439,12 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
           {!result.valid ? (
             <div role="alert" className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]">
               <AlertCircle className="h-4 w-4 shrink-0 text-[#f59e0b]" />
-              <span>{result.error}</span>
+              <span>{t.rebar.invalidLengthError}</span>
             </div>
           ) : (
             <div className="space-y-4 border-t border-white/[0.08] pt-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold text-[#d9f99d]">تفاصيل الأوزان والتقطيع التجاري</span>
+                <span className="text-xs font-bold text-[#d9f99d]">{t.rebar.resultsHeading}</span>
                 <div className="flex items-center gap-1 rounded-[12px] bg-[#070b09] p-1 border border-white/[0.08]">
                   {(['kg', 'q', 't'] as MassUnit[]).map((mu) => (
                     <button
@@ -431,7 +455,7 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                         massDisplayUnit === mu ? 'bg-[#84cc16] text-[#060a05]' : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
                       }`}
                     >
-                      {mu === 'kg' ? 'كغ' : mu === 'q' ? 'قنطار' : 'طن'}
+                      {getUnitDisplay(lang, mu).symbol}
                     </button>
                   ))}
                 </div>
@@ -447,10 +471,10 @@ export const RebarCalculator: React.FC<RebarCalculatorProps> = ({ onSaveToBoq })
                 type="button"
                 onClick={handleSave}
                 disabled={!result.valid}
-                aria-label="+ حفظ في المقايسة"
+                aria-label={t.common.saveToBoq}
                 className="btn-kiwi w-full min-h-[48px] py-3 text-sm font-extrabold flex items-center justify-center gap-2 active:scale-[0.97] shadow-lg cursor-pointer disabled:opacity-40"
               >
-                <span>+ حفظ في المقايسة</span>
+                <span>{t.common.saveToBoq}</span>
               </button>
             </div>
           )}

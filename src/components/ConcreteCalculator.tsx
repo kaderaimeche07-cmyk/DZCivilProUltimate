@@ -4,11 +4,9 @@ import {
   calculateConcreteMix,
   calculateConcreteCostDzd,
   DEFAULT_CONCRETE_PRICES_DZD,
-  formatDzd,
   type ConcreteDosage,
 } from '../utils/calculators.engine';
 import {
-  LENGTH_UNITS,
   fromCubicMeters,
   formatEngineeringNumber,
   toMeters,
@@ -22,22 +20,22 @@ import { LiveResultBanner } from './LiveResultBanner';
 import { CollapsibleSection } from './CollapsibleSection';
 import { BottomSheet } from './BottomSheet';
 import type { SavedBoqItem } from '../types/boq';
+import { useI18n } from '../i18n/I18nContext';
+import {
+  TRANSLATIONS,
+  formatCurrencyLocale,
+  getInitialLang,
+  getUnitDisplay,
+} from '../i18n/translations';
 
 interface ConcreteCalculatorProps {
   onSaveToBoq: (item: SavedBoqItem) => void;
 }
 
-const DOSAGES: { value: ConcreteDosage; label: string; useCase: string }[] = [
-  { value: 250, label: '250 كغ/م³', useCase: 'نظافة' },
-  { value: 300, label: '300 كغ/م³', useCase: 'دكة أرضية' },
-  { value: 350, label: '350 كغ/م³', useCase: 'مسلحة قياسية' },
-  { value: 400, label: '400 كغ/م³', useCase: 'أعمدة ومنشآت' },
-];
+const DOSAGE_VALUES: ConcreteDosage[] = [250, 300, 350, 400];
 
-const PRESETS: {
-  id: string;
-  label: string;
-  name: string;
+const PRESET_SPECS: {
+  id: 'slab' | 'column' | 'beam' | 'footing';
   l: string;
   lu: LengthUnit;
   w: string;
@@ -46,25 +44,39 @@ const PRESETS: {
   tu: LengthUnit;
   dosage: ConcreteDosage;
 }[] = [
-  { id: 'slab', label: 'بلاطة أرضية (10×5م)', name: 'بلاطة أرضية خرسانية', l: '10', lu: 'm', w: '5', wu: 'm', t: '20', tu: 'cm', dosage: 350 },
-  { id: 'column', label: 'عمود (Poteau 35×35)', name: 'عمود خرساني 35×35 سم', l: '35', lu: 'cm', w: '35', wu: 'cm', t: '3.2', tu: 'm', dosage: 350 },
-  { id: 'beam', label: 'كمرة (Poutre 30×45)', name: 'كمرة رئيسية 30×45 سم', l: '4.5', lu: 'm', w: '30', wu: 'cm', t: '45', tu: 'cm', dosage: 350 },
-  { id: 'footing', label: 'أساس (Semelle 1.5×1.5)', name: 'أساس منفرد 1.5×1.5 م', l: '150', lu: 'cm', w: '150', wu: 'cm', t: '40', tu: 'cm', dosage: 350 },
+  { id: 'slab', l: '10', lu: 'm', w: '5', wu: 'm', t: '20', tu: 'cm', dosage: 350 },
+  { id: 'column', l: '35', lu: 'cm', w: '35', wu: 'cm', t: '3.2', tu: 'm', dosage: 350 },
+  { id: 'beam', l: '4.5', lu: 'm', w: '30', wu: 'cm', t: '45', tu: 'cm', dosage: 350 },
+  { id: 'footing', l: '150', lu: 'cm', w: '150', wu: 'cm', t: '40', tu: 'cm', dosage: 350 },
 ];
+
+const DEFAULT_CONCRETE_NAMES = new Set<string>([
+  TRANSLATIONS.ar.concrete.defaultElementName,
+  TRANSLATIONS.fr.concrete.defaultElementName,
+  TRANSLATIONS.en.concrete.defaultElementName,
+]);
 
 const CONCRETE_STATE_KEY = 'dz_civil_calc_concrete_state';
 
 export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveToBoq }) => {
+  const { lang, t } = useI18n();
+
   const [elementName, setElementName] = useState(() => {
     try {
       const saved = localStorage.getItem(CONCRETE_STATE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (typeof parsed.elementName === 'string') return parsed.elementName;
+        if (typeof parsed.elementName === 'string' && !DEFAULT_CONCRETE_NAMES.has(parsed.elementName)) {
+          return parsed.elementName;
+        }
       }
     } catch {}
-    return 'بلاطة أرضية خرسانية';
+    return TRANSLATIONS[getInitialLang()].concrete.defaultElementName;
   });
+
+  React.useEffect(() => {
+    setElementName((prev: string) => (DEFAULT_CONCRETE_NAMES.has(prev) ? t.concrete.defaultElementName : prev));
+  }, [t.concrete.defaultElementName]);
 
   const [lengthStr, setLengthStr] = useState(() => {
     try {
@@ -194,8 +206,8 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
     });
   }, [result, bagPriceStr, sandPriceStr, gravelPriceStr]);
 
-  const applyPreset = (p: (typeof PRESETS)[number]) => {
-    setElementName(p.name);
+  const applyPreset = (p: (typeof PRESET_SPECS)[number]) => {
+    setElementName(t.concrete.presets[p.id].name);
     setLengthStr(p.l);
     setLengthUnit(p.lu);
     setWidthStr(p.w);
@@ -217,68 +229,77 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
   const engineeringWarnings = useMemo(() => {
     const msgs: string[] = [];
     if (thicknessM > 0 && thicknessM < 0.05) {
-      msgs.push('تنبيه هندسي (CBA 93): سمك الخرسانة أقل من 5 سم غير مطابق للبلاطات المسلحة الحاملة.');
+      msgs.push(t.concrete.warnThickness);
     }
     if (dosage < 250) {
-      msgs.push('تنبيه (CBA 93): عيار أقل من 250 كغ/م³ يُعتبر خرسانة نظافة فقط وغير معتمد للمنشآت الحاملة.');
+      msgs.push(t.concrete.warnDosage);
     }
     return msgs;
-  }, [thicknessM, dosage]);
+  }, [thicknessM, dosage, t.concrete.warnThickness, t.concrete.warnDosage]);
 
   const displayedNetVol = formatEngineeringNumber(fromCubicMeters(result.netVolumeM3, outputVolUnit), 3);
   const displayedGrossVol = formatEngineeringNumber(fromCubicMeters(result.grossVolumeM3, outputVolUnit), 3);
-  const volSymbol = outputVolUnit === 'm3' ? 'م³' : 'لتر';
+
+  const m3Symbol = getUnitDisplay(lang, 'm3').symbol;
+  const volSymbol = getUnitDisplay(lang, outputVolUnit).symbol;
+  const kgSymbol = getUnitDisplay(lang, 'kg').symbol;
+  const tonneSymbol = getUnitDisplay(lang, 't').symbol;
+  const literSymbol = getUnitDisplay(lang, 'L').symbol;
+
+  const lengthUnitSym = getUnitDisplay(lang, lengthUnit).symbol;
+  const widthUnitSym = getUnitDisplay(lang, widthUnit).symbol;
+  const thicknessUnitSym = getUnitDisplay(lang, thicknessUnit).symbol;
 
   const telemetryMetrics: TelemetryMetricItem[] = useMemo(
     () => [
       {
         id: 'conc-net',
-        label: 'الحجم الصافي',
+        label: t.concrete.metrics.netVol,
         value: displayedNetVol,
         unit: volSymbol,
         accent: 'neutral',
       },
       {
         id: 'conc-gross',
-        label: 'الحجم مع الهدر',
+        label: t.concrete.metrics.grossVol,
         value: displayedGrossVol,
         unit: volSymbol,
         accent: 'kiwi',
       },
       {
         id: 'conc-cement',
-        label: 'أكياس الإسمنت (50 كغ)',
+        label: t.concrete.metrics.cementBags,
         value: result.cementBags50kg,
-        unit: 'كيس',
-        subtext: `${result.cementKg} كغ`,
+        unit: t.concrete.metrics.bagUnit,
+        subtext: `${result.cementKg} ${kgSymbol}`,
         accent: 'amber',
       },
       {
         id: 'conc-sand',
-        label: 'رمل البناء (0/3)',
+        label: t.concrete.metrics.sand,
         value: result.sandM3,
-        unit: 'م³',
-        subtext: `${result.sandTonnes} طن`,
+        unit: m3Symbol,
+        subtext: `${result.sandTonnes} ${tonneSymbol}`,
         accent: 'neutral',
       },
       {
         id: 'conc-gravel',
-        label: 'حصى (8/15 و 15/25)',
+        label: t.concrete.metrics.gravel,
         value: result.gravelM3,
-        unit: 'م³',
-        subtext: `${result.gravelTonnes} طن`,
+        unit: m3Symbol,
+        subtext: `${result.gravelTonnes} ${tonneSymbol}`,
         accent: 'neutral',
       },
       {
         id: 'conc-water',
-        label: 'ماء الخلط / خلاطات',
+        label: t.concrete.metrics.waterTrucks,
         value: result.waterLiters,
-        unit: 'لتر',
-        subtext: `${result.mixTrucks7m3} شاحنة (7م³)`,
+        unit: literSymbol,
+        subtext: t.concrete.metrics.trucksSub(result.mixTrucks7m3),
         accent: 'neutral',
       },
     ],
-    [displayedNetVol, displayedGrossVol, volSymbol, result]
+    [displayedNetVol, displayedGrossVol, volSymbol, m3Symbol, kgSymbol, tonneSymbol, literSymbol, result, t]
   );
 
   const handleSave = () => {
@@ -286,14 +307,14 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
     onSaveToBoq({
       id: `conc-${Date.now()}`,
       category: 'concrete',
-      categoryLabel: 'الخرسانة',
-      title: `${elementName.trim() || 'عنصر خرساني'} (${dosage} كغ/م³)`,
-      summary: `${lengthStr}${LENGTH_UNITS[lengthUnit].symbol} × ${widthStr}${LENGTH_UNITS[widthUnit].symbol} × ${thicknessStr}${LENGTH_UNITS[thicknessUnit].symbol} · هدر ${wasteStr}%`,
+      categoryLabel: t.concrete.boqCategory,
+      title: `${elementName.trim() || t.concrete.defaultElementName} (${dosage} ${t.concrete.dosageUnit})`,
+      summary: `${lengthStr}${lengthUnitSym} × ${widthStr}${widthUnitSym} × ${thicknessStr}${thicknessUnitSym} · ${t.concrete.boqSummaryPrefix} ${wasteStr}%`,
       metrics: [
-        { label: 'الحجم الإجمالي', value: `${result.grossVolumeM3} م³` },
-        { label: 'الإسمنت (50 كغ)', value: `${result.cementBags50kg} كيس (${result.cementKg} كغ)` },
-        { label: 'الرمل (0/3)', value: `${result.sandM3} م³ (${result.sandTonnes} طن)` },
-        { label: 'الحصى (8/15-15/25)', value: `${result.gravelM3} م³ (${result.gravelTonnes} طن)` },
+        { label: t.concrete.boqMetrics.totalVol, value: `${result.grossVolumeM3} ${m3Symbol}` },
+        { label: t.concrete.boqMetrics.cement, value: `${result.cementBags50kg} ${t.concrete.metrics.bagUnit} (${result.cementKg} ${kgSymbol})` },
+        { label: t.concrete.boqMetrics.sand, value: `${result.sandM3} ${m3Symbol} (${result.sandTonnes} ${tonneSymbol})` },
+        { label: t.concrete.boqMetrics.gravel, value: `${result.gravelM3} ${m3Symbol} (${result.gravelTonnes} ${tonneSymbol})` },
       ],
       estimatedCostDzd,
       createdAtIso: new Date().toISOString(),
@@ -305,13 +326,13 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
       {/* Pinned Real-Time Quantity + Cost Summary */}
       {result.valid && (
         <LiveResultBanner
-          label={`النتيجة الفورية · ${elementName}`}
+          label={t.concrete.liveLabel(elementName || t.concrete.defaultElementName)}
           primaryValue={`${displayedGrossVol} ${volSymbol}`}
-          secondaryDetail={`${result.cementBags50kg} كيس إسمنت`}
-          costText={formatDzd(estimatedCostDzd)}
-          copyCostLabel="نسخ التكلفة بالدينار"
+          secondaryDetail={t.concrete.liveSecondary(result.cementBags50kg)}
+          costText={formatCurrencyLocale(estimatedCostDzd, lang)}
+          copyCostLabel={t.concrete.copyCostLabel}
           onSave={handleSave}
-          saveLabel="+ حفظ في المقايسة"
+          saveLabel={t.common.saveToBoq}
         />
       )}
 
@@ -326,10 +347,10 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
               </span>
               <div>
                 <h2 id="concrete-calc-heading" className="text-lg font-bold text-[#f4f7f2]">
-                  حاسبة الخرسانة والخلطة
+                  {t.concrete.heading}
                 </h2>
                 <p className="text-xs text-[#b7c9bc]">
-                  أدخل الأبعاد بأي وحدة (م، سم، ملم، قدم) — عيار <bdi dir="ltr">{dosage} kg/m³</bdi>
+                  {t.concrete.subtitlePrefix} <bdi dir="ltr">{dosage} kg/m³</bdi>
                 </p>
               </div>
             </div>
@@ -340,7 +361,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
               className="inline-flex min-h-[44px] items-center gap-2 rounded-[12px] border border-white/[0.12] bg-[#070b09] px-4 py-2 text-xs font-bold text-[#d9f99d] hover:border-[#84cc16]/50 transition-colors duration-200 whitespace-nowrap cursor-pointer"
             >
               <Sparkles className="h-4 w-4 text-[#f59e0b]" />
-              <span>قوالب ووحدات سريعة</span>
+              <span>{t.concrete.presetsBtn}</span>
             </button>
           </div>
 
@@ -351,7 +372,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <UnitInputField
                   id="conc-length"
-                  label="الطول (L)"
+                  label={t.concrete.lengthLabel}
                   valueStr={lengthStr}
                   onValueChange={setLengthStr}
                   unit={lengthUnit}
@@ -359,7 +380,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                 />
                 <UnitInputField
                   id="conc-width"
-                  label="العرض (W)"
+                  label={t.concrete.widthLabel}
                   valueStr={widthStr}
                   onValueChange={setWidthStr}
                   unit={widthUnit}
@@ -370,7 +391,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <UnitInputField
                   id="conc-thickness"
-                  label="السمك / الارتفاع (H)"
+                  label={t.concrete.thicknessLabel}
                   valueStr={thicknessStr}
                   onValueChange={setThicknessStr}
                   unit={thicknessUnit}
@@ -378,7 +399,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                 />
                 <div>
                   <label htmlFor="conc-name-quick" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                    اسم العنصر
+                    {t.concrete.elementNameQuickLabel}
                   </label>
                   <input
                     id="conc-name-quick"
@@ -405,26 +426,26 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
               {/* Clean Dosage Selector */}
               <div>
                 <span className="mb-2 block text-xs font-semibold text-[#b7c9bc]">
-                  عيار الإسمنت (<bdi dir="ltr">Dosage</bdi>)
+                  {t.concrete.dosageLabel} (<bdi dir="ltr">{t.concrete.dosageWord}</bdi>)
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {DOSAGES.map((d) => {
-                    const active = dosage === d.value;
+                  {DOSAGE_VALUES.map((dVal) => {
+                    const active = dosage === dVal;
                     return (
                       <button
-                        key={d.value}
+                        key={dVal}
                         type="button"
-                        onClick={() => setDosage(d.value)}
-                        className={`min-h-[54px] rounded-[12px] border px-3 py-2.5 text-right transition-colors duration-200 cursor-pointer ${
+                        onClick={() => setDosage(dVal)}
+                        className={`min-h-[54px] rounded-[12px] border px-3 py-2.5 text-start transition-colors duration-200 cursor-pointer ${
                           active
                             ? 'border-[#84cc16] bg-[#84cc16]/14 text-[#f4f7f2]'
                             : 'border-white/[0.08] bg-[#070b09] text-[#b7c9bc] hover:border-white/20'
                         }`}
                       >
                         <div className={`font-mono-tabular text-sm font-bold ${active ? 'text-[#84cc16]' : 'text-[#f4f7f2]'}`}>
-                          <bdi dir="ltr">{d.label}</bdi>
+                          <bdi dir="ltr">{dVal} {t.concrete.dosageUnit}</bdi>
                         </div>
-                        <div className="mt-0.5 text-[11px] text-[#b7c9bc]">{d.useCase}</div>
+                        <div className="mt-0.5 text-[11px] text-[#b7c9bc]">{t.concrete.dosages[dVal]}</div>
                       </button>
                     );
                   })}
@@ -433,15 +454,15 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
 
               {/* Progressive Disclosure: Advanced Options */}
               <CollapsibleSection
-                title="خيارات متقدمة"
-                subtitle="تسمية العنصر، نسبة الهدر، وأسعار المواد بالورشة (دج)"
-                badge={`هدر ${wasteStr}%`}
+                title={t.common.advancedOptions}
+                subtitle={t.concrete.advSubtitle}
+                badge={t.common.wasteBadge(wasteStr)}
                 icon={<SlidersHorizontal className="h-4 w-4" />}
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label htmlFor="conc-name" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                      اسم العنصر الإنشائي
+                      {t.concrete.elementNameFullLabel}
                     </label>
                     <input
                       id="conc-name"
@@ -453,7 +474,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                   </div>
                   <div>
                     <label htmlFor="conc-waste" className="mb-1.5 block text-xs font-semibold text-[#b7c9bc]">
-                      نسبة الهدر (%)
+                      {t.concrete.wastePercentLabel}
                     </label>
                     <input
                       id="conc-waste"
@@ -471,7 +492,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-white/[0.08] pt-3.5 text-xs">
                   <div>
                     <label htmlFor="price-bag" className="mb-1 block text-[11px] text-[#b7c9bc]">
-                      كيس إسمنت 50 كغ (دج)
+                      {t.concrete.bagPriceLabel}
                     </label>
                     <input
                       id="price-bag"
@@ -484,7 +505,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                   </div>
                   <div>
                     <label htmlFor="price-sand" className="mb-1 block text-[11px] text-[#b7c9bc]">
-                      م³ رمل (دج)
+                      {t.concrete.sandPriceLabel}
                     </label>
                     <input
                       id="price-sand"
@@ -497,7 +518,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                   </div>
                   <div>
                     <label htmlFor="price-gravel" className="mb-1 block text-[11px] text-[#b7c9bc]">
-                      م³ حصى (دج)
+                      {t.concrete.gravelPriceLabel}
                     </label>
                     <input
                       id="price-gravel"
@@ -516,23 +537,23 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
             <div className="lg:col-span-5">
               <div className="hidden lg:block">
                 <ConcreteCadDiagram
-                  lengthLabel={`${lengthStr || 0}${LENGTH_UNITS[lengthUnit].symbol}`}
-                  widthLabel={`${widthStr || 0}${LENGTH_UNITS[widthUnit].symbol}`}
-                  thicknessLabel={`${thicknessStr || 0}${LENGTH_UNITS[thicknessUnit].symbol}`}
+                  lengthLabel={`${lengthStr || 0}${lengthUnitSym}`}
+                  widthLabel={`${widthStr || 0}${widthUnitSym}`}
+                  thicknessLabel={`${thicknessStr || 0}${thicknessUnitSym}`}
                   dosage={dosage}
                   result={result}
                 />
               </div>
               <div className="lg:hidden">
                 <CollapsibleSection
-                  title="المخطط الهندسي التفاعلي (3D)"
-                  subtitle="معاينة الأبعاد ونسب توزيع الخلطة"
+                  title={t.concrete.cadMobileTitle}
+                  subtitle={t.concrete.cadMobileSub}
                   icon={<Layers className="h-4 w-4 text-[#84cc16]" />}
                 >
                   <ConcreteCadDiagram
-                    lengthLabel={`${lengthStr || 0}${LENGTH_UNITS[lengthUnit].symbol}`}
-                    widthLabel={`${widthStr || 0}${LENGTH_UNITS[widthUnit].symbol}`}
-                    thicknessLabel={`${thicknessStr || 0}${LENGTH_UNITS[thicknessUnit].symbol}`}
+                    lengthLabel={`${lengthStr || 0}${lengthUnitSym}`}
+                    widthLabel={`${widthStr || 0}${widthUnitSym}`}
+                    thicknessLabel={`${thicknessStr || 0}${thicknessUnitSym}`}
                     dosage={dosage}
                     result={result}
                   />
@@ -545,12 +566,12 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
           {!result.valid ? (
             <div role="alert" className="flex items-center gap-2 rounded-[14px] border border-[#f59e0b]/40 bg-[#f59e0b]/10 p-3.5 text-xs text-[#fde68a]">
               <AlertCircle className="h-4 w-4 shrink-0 text-[#f59e0b]" />
-              <span>{result.error}</span>
+              <span>{t.concrete.invalidInputsError}</span>
             </div>
           ) : (
             <div className="space-y-4 border-t border-white/[0.08] pt-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold text-[#d9f99d]">تفاصيل الكميات ومواد الخلطة</span>
+                <span className="text-xs font-bold text-[#d9f99d]">{t.concrete.resultsHeading}</span>
                 <div className="flex items-center gap-1 rounded-[12px] bg-[#070b09] p-1 border border-white/[0.08]">
                   {(['m3', 'L'] as VolumeUnit[]).map((vu) => (
                     <button
@@ -561,7 +582,7 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                         outputVolUnit === vu ? 'bg-[#84cc16] text-[#060a05]' : 'text-[#b7c9bc] hover:text-[#f4f7f2]'
                       }`}
                     >
-                      {vu === 'm3' ? 'عرض بـ م³' : 'عرض باللتر'}
+                      {vu === 'm3' ? t.concrete.showInM3 : t.concrete.showInLiters}
                     </button>
                   ))}
                 </div>
@@ -577,10 +598,10 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
                 type="button"
                 onClick={handleSave}
                 disabled={!result.valid}
-                aria-label="+ حفظ في المقايسة"
+                aria-label={t.common.saveToBoq}
                 className="btn-kiwi w-full min-h-[48px] py-3 text-sm font-extrabold flex items-center justify-center gap-2 active:scale-[0.97] shadow-lg cursor-pointer disabled:opacity-40"
               >
-                <span>+ حفظ في المقايسة</span>
+                <span>{t.common.saveToBoq}</span>
               </button>
             </div>
           )}
@@ -591,39 +612,42 @@ export const ConcreteCalculator: React.FC<ConcreteCalculatorProps> = ({ onSaveTo
       <BottomSheet
         open={presetsSheetOpen}
         onClose={() => setPresetsSheetOpen(false)}
-        title="قوالب جاهزة ووحدات موحدة"
-        subtitle="اختر عنصراً قياسياً أو وحّد وحدة الإدخال بضغطة واحدة"
+        title={t.concrete.presetsSheetTitle}
+        subtitle={t.concrete.presetsSheetSub}
       >
         <div className="space-y-5">
           <div className="space-y-2.5">
-            <div className="text-xs font-bold text-[#b7c9bc]">عناصر إنشائية قياسية</div>
+            <div className="text-xs font-bold text-[#b7c9bc]">{t.concrete.presetsSectionTitle}</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {PRESETS.map((p) => (
+              {PRESET_SPECS.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => applyPreset(p)}
-                  className="min-h-[48px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-4 py-2.5 text-right text-xs font-bold text-[#d9f99d] hover:border-[#84cc16]/60 transition-colors duration-200 cursor-pointer"
+                  className="min-h-[48px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-4 py-2.5 text-start text-xs font-bold text-[#d9f99d] hover:border-[#84cc16]/60 transition-colors duration-200 cursor-pointer"
                 >
-                  <bdi dir="ltr">{p.label}</bdi>
+                  <bdi dir="ltr">{t.concrete.presets[p.id].label}</bdi>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2.5 border-t border-white/[0.08] pt-4">
-            <div className="text-xs font-bold text-[#b7c9bc]">توحيد وحدة جميع الأبعاد</div>
+            <div className="text-xs font-bold text-[#b7c9bc]">{t.concrete.unifyUnitsTitle}</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(['m', 'cm', 'mm', 'ft'] as LengthUnit[]).map((u) => (
-                <button
-                  key={u}
-                  type="button"
-                  onClick={() => applyAllUnits(u)}
-                  className="min-h-[44px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-3 py-2 text-xs font-bold text-[#f59e0b] hover:border-[#84cc16]/60 hover:text-[#84cc16] transition-colors duration-200 cursor-pointer"
-                >
-                  {LENGTH_UNITS[u].arName} (<bdi dir="ltr">{LENGTH_UNITS[u].symbol}</bdi>)
-                </button>
-              ))}
+              {(['m', 'cm', 'mm', 'ft'] as LengthUnit[]).map((u) => {
+                const disp = getUnitDisplay(lang, u);
+                return (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => applyAllUnits(u)}
+                    className="min-h-[44px] rounded-[12px] border border-white/[0.09] bg-[#070b09] px-3 py-2 text-xs font-bold text-[#f59e0b] hover:border-[#84cc16]/60 hover:text-[#84cc16] transition-colors duration-200 cursor-pointer"
+                  >
+                    {disp.name} (<bdi dir="ltr">{disp.symbol}</bdi>)
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
